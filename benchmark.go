@@ -28,6 +28,38 @@ func (b Benchmark) String() string {
 	return strings.Join(s, "\n")
 }
 
+// GroupResults groups a benchmarks results by a specified set of inputs.
+func (b Benchmark) GroupResults(groupBy []string) GroupedResults {
+	groupedResults := map[string][]BenchRes{}
+	if len(groupBy) == 0 {
+		res := make([]BenchRes, len(b.Results))
+		copy(res, b.Results)
+		groupedResults[""] = res
+		return groupedResults
+	}
+	for _, result := range b.Results {
+		groupVals := benchVarValues{}
+		for _, varValue := range result.Inputs.VarValues {
+			for _, groupName := range groupBy {
+				if varValue.Name == groupName {
+					groupVals = append(groupVals, varValue)
+				}
+			}
+		}
+		if len(groupVals) != len(groupBy) {
+			continue
+		}
+
+		k := groupVals.String()
+		if existingResults, ok := groupedResults[k]; ok {
+			groupedResults[k] = append(existingResults, result)
+		} else {
+			groupedResults[k] = []BenchRes{result}
+		}
+	}
+	return groupedResults
+}
+
 // ParseBenchmarks extracts a list of Benchmarks from testing.B output.
 func ParseBenchmarks(r io.Reader) ([]Benchmark, error) {
 	var (

@@ -6,11 +6,72 @@ import (
 	"io"
 	"log"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
 	"golang.org/x/tools/benchmark/parse"
 )
+
+var sampleBench = Benchmark{
+	Name: "BenchmarkMath",
+	Results: []BenchRes{
+		{
+			Inputs: BenchInputs{
+				Subs: []BenchSub{{Name: "areaUnder", position: 1}},
+				VarValues: []BenchVarValue{
+					{Name: "y", Value: "sin(x)", position: 2},
+					{Name: "delta", Value: 0.001, position: 3},
+					{Name: "start_x", Value: -2, position: 4},
+					{Name: "end_x", Value: 1, position: 5},
+					{Name: "abs_val", Value: true, position: 6},
+				},
+				MaxProcs: 4,
+			},
+			Outputs: BenchOutputs{N: 21801, NsPerOp: 55357, Measured: parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp},
+		},
+		{
+			Inputs: BenchInputs{
+				Subs: []BenchSub{{Name: "areaUnder", position: 1}},
+				VarValues: []BenchVarValue{
+					{Name: "y", Value: "2x+3", position: 2},
+					{Name: "delta", Value: 1.0, position: 3},
+					{Name: "start_x", Value: -1, position: 4},
+					{Name: "end_x", Value: 2, position: 5},
+					{Name: "abs_val", Value: false, position: 6},
+				},
+				MaxProcs: 4,
+			},
+			Outputs: BenchOutputs{N: 88335925, NsPerOp: 13.3, Measured: parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp},
+		},
+		{
+			Inputs: BenchInputs{
+				Subs: []BenchSub{{Name: "max", position: 1}},
+				VarValues: []BenchVarValue{
+					{Name: "y", Value: "2x+3", position: 2},
+					{Name: "delta", Value: 0.001, position: 3},
+					{Name: "start_x", Value: -2, position: 4},
+					{Name: "end_x", Value: 1, position: 5},
+				},
+				MaxProcs: 4,
+			},
+			Outputs: BenchOutputs{N: 56282, NsPerOp: 20361, Measured: parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp},
+		},
+		{
+			Inputs: BenchInputs{
+				Subs: []BenchSub{{Name: "max", position: 1}},
+				VarValues: []BenchVarValue{
+					{Name: "y", Value: "sin(x)", position: 2},
+					{Name: "delta", Value: 1.0, position: 3},
+					{Name: "start_x", Value: -1, position: 4},
+					{Name: "end_x", Value: 2, position: 5},
+				},
+				MaxProcs: 4,
+			},
+			Outputs: BenchOutputs{N: 16381138, NsPerOp: 62.7, Measured: parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp},
+		},
+	},
+}
 
 var parseBenchmarksTests = map[string]struct {
 	resultSet          string
@@ -27,67 +88,7 @@ var parseBenchmarksTests = map[string]struct {
 			BenchmarkMath/max/y=sin(x)/delta=1.000000/start_x=-1/end_x=2-4                            	16381138	        62.7 ns/op	       0 B/op	       0 allocs/op
 			PASS
 			`,
-		expectedBenchmarks: []Benchmark{
-			{
-				Name: "BenchmarkMath",
-				Results: []BenchRes{
-					{
-						Inputs: BenchInputs{
-							Subs: []BenchSub{{Name: "areaUnder", position: 1}},
-							VarValues: []BenchVarValue{
-								{Name: "y", Value: "sin(x)", position: 2},
-								{Name: "delta", Value: 0.001, position: 3},
-								{Name: "start_x", Value: -2, position: 4},
-								{Name: "end_x", Value: 1, position: 5},
-								{Name: "abs_val", Value: true, position: 6},
-							},
-							MaxProcs: 4,
-						},
-						Outputs: BenchOutputs{N: 21801, NsPerOp: 55357, Measured: parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp},
-					},
-					{
-						Inputs: BenchInputs{
-							Subs: []BenchSub{{Name: "areaUnder", position: 1}},
-							VarValues: []BenchVarValue{
-								{Name: "y", Value: "2x+3", position: 2},
-								{Name: "delta", Value: 1.0, position: 3},
-								{Name: "start_x", Value: -1, position: 4},
-								{Name: "end_x", Value: 2, position: 5},
-								{Name: "abs_val", Value: false, position: 6},
-							},
-							MaxProcs: 4,
-						},
-						Outputs: BenchOutputs{N: 88335925, NsPerOp: 13.3, Measured: parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp},
-					},
-					{
-						Inputs: BenchInputs{
-							Subs: []BenchSub{{Name: "max", position: 1}},
-							VarValues: []BenchVarValue{
-								{Name: "y", Value: "2x+3", position: 2},
-								{Name: "delta", Value: 0.001, position: 3},
-								{Name: "start_x", Value: -2, position: 4},
-								{Name: "end_x", Value: 1, position: 5},
-							},
-							MaxProcs: 4,
-						},
-						Outputs: BenchOutputs{N: 56282, NsPerOp: 20361, Measured: parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp},
-					},
-					{
-						Inputs: BenchInputs{
-							Subs: []BenchSub{{Name: "max", position: 1}},
-							VarValues: []BenchVarValue{
-								{Name: "y", Value: "sin(x)", position: 2},
-								{Name: "delta", Value: 1.0, position: 3},
-								{Name: "start_x", Value: -1, position: 4},
-								{Name: "end_x", Value: 2, position: 5},
-							},
-							MaxProcs: 4,
-						},
-						Outputs: BenchOutputs{N: 16381138, NsPerOp: 62.7, Measured: parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp},
-					},
-				},
-			},
-		},
+		expectedBenchmarks: []Benchmark{sampleBench},
 	},
 }
 
@@ -115,66 +116,7 @@ func TestParseBencharks(t *testing.T) {
 }
 
 func TestBenchmarkString(t *testing.T) {
-	bench := Benchmark{
-		Name: "BenchmarkMath",
-		Results: []BenchRes{
-			{
-				Inputs: BenchInputs{
-					Subs: []BenchSub{{Name: "areaUnder", position: 1}},
-					VarValues: []BenchVarValue{
-						{Name: "y", Value: "sin(x)", position: 2},
-						{Name: "delta", Value: 0.001, position: 3},
-						{Name: "start_x", Value: -2, position: 4},
-						{Name: "end_x", Value: 1, position: 5},
-						{Name: "abs_val", Value: true, position: 6},
-					},
-					MaxProcs: 4,
-				},
-				Outputs: BenchOutputs{N: 21801, NsPerOp: 55357, Measured: parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp},
-			},
-			{
-				Inputs: BenchInputs{
-					Subs: []BenchSub{{Name: "areaUnder", position: 1}},
-					VarValues: []BenchVarValue{
-						{Name: "y", Value: "2x+3", position: 2},
-						{Name: "delta", Value: 1.0, position: 3},
-						{Name: "start_x", Value: -1, position: 4},
-						{Name: "end_x", Value: 2, position: 5},
-						{Name: "abs_val", Value: false, position: 6},
-					},
-					MaxProcs: 4,
-				},
-				Outputs: BenchOutputs{N: 88335925, NsPerOp: 13.3, Measured: parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp},
-			},
-			{
-				Inputs: BenchInputs{
-					Subs: []BenchSub{{Name: "max", position: 1}},
-					VarValues: []BenchVarValue{
-						{Name: "y", Value: "2x+3", position: 2},
-						{Name: "delta", Value: 0.001, position: 3},
-						{Name: "start_x", Value: -2, position: 4},
-						{Name: "end_x", Value: 1, position: 5},
-					},
-					MaxProcs: 4,
-				},
-				Outputs: BenchOutputs{N: 56282, NsPerOp: 20361, Measured: parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp},
-			},
-			{
-				Inputs: BenchInputs{
-					Subs: []BenchSub{{Name: "max", position: 1}},
-					VarValues: []BenchVarValue{
-						{Name: "y", Value: "sin(x)", position: 2},
-						{Name: "delta", Value: 1.0, position: 3},
-						{Name: "start_x", Value: -1, position: 4},
-						{Name: "end_x", Value: 2, position: 5},
-					},
-					MaxProcs: 4,
-				},
-				Outputs: BenchOutputs{N: 16381138, NsPerOp: 62.7, Measured: parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp},
-			},
-		},
-	}
-
+	bench := sampleBench
 	s := bench.String()
 	// slightly different float precision than input
 	expectedString := `BenchmarkMath/areaUnder/y=sin(x)/delta=0.001/start_x=-2/end_x=1/abs_val=true-4 21801 55357.00 ns/op 0 B/op 0 allocs/op
@@ -335,4 +277,117 @@ func BenchmarkParseInfo(b *testing.B) {
 			}
 		})
 	}
+}
+
+var groupResultsTests = map[string]struct {
+	benchmark              Benchmark
+	groupBy                []string
+	expectedGroupedResults GroupedResults
+}{
+	"group_by_1_string_var": {
+		benchmark: sampleBench,
+		groupBy:   []string{"y"},
+		expectedGroupedResults: map[string][]BenchRes{
+			"y=sin(x)": []BenchRes{
+				sampleBench.Results[0],
+				sampleBench.Results[3],
+			},
+			"y=2x+3": []BenchRes{
+				sampleBench.Results[1],
+				sampleBench.Results[2],
+			},
+		},
+	},
+	"no_group_by": {
+		benchmark: sampleBench,
+		expectedGroupedResults: map[string][]BenchRes{
+			"": []BenchRes{
+				sampleBench.Results[0],
+				sampleBench.Results[1],
+				sampleBench.Results[2],
+				sampleBench.Results[3],
+			},
+		},
+	},
+	"group_by_2_vars": {
+		benchmark: sampleBench,
+		groupBy:   []string{"y", "delta"},
+		expectedGroupedResults: map[string][]BenchRes{
+			"y=sin(x),delta=0.001": []BenchRes{
+				sampleBench.Results[0],
+			},
+			"y=2x+3,delta=1": []BenchRes{
+				sampleBench.Results[1],
+			},
+			"y=2x+3,delta=0.001": []BenchRes{
+				sampleBench.Results[2],
+			},
+			"y=sin(x),delta=1": []BenchRes{
+				sampleBench.Results[3],
+			},
+		},
+	},
+	"group_by_sub-specific_bool_var": {
+		benchmark: sampleBench,
+		groupBy:   []string{"abs_val"}, // only present on half the results
+		expectedGroupedResults: map[string][]BenchRes{
+			"abs_val=true": []BenchRes{
+				sampleBench.Results[0],
+			},
+			"abs_val=false": []BenchRes{
+				sampleBench.Results[1],
+			},
+		},
+	},
+}
+
+func TestGroupResults(t *testing.T) {
+	for testName, testCase := range groupResultsTests {
+		t.Run(testName, func(t *testing.T) {
+			grouped := testCase.benchmark.GroupResults(testCase.groupBy)
+			if !reflect.DeepEqual(grouped, testCase.expectedGroupedResults) {
+				t.Errorf("unexpected grouped results\nexpected:\n%v\nactual:\n%v", testCase.expectedGroupedResults, grouped)
+			}
+		})
+	}
+}
+
+func ExampleBenchmark_GroupResults() {
+	r := strings.NewReader(`
+			BenchmarkMath/areaUnder/y=sin(x)/delta=0.001000/start_x=-2/end_x=1/abs_val=true-4         	   21801	     55357 ns/op	       0 B/op	       0 allocs/op
+			BenchmarkMath/areaUnder/y=2x+3/delta=1.000000/start_x=-1/end_x=2/abs_val=false-4          	88335925	        13.3 ns/op	       0 B/op	       0 allocs/op
+			BenchmarkMath/max/y=2x+3/delta=0.001000/start_x=-2/end_x=1-4                              	   56282	     20361 ns/op	       0 B/op	       0 allocs/op
+			BenchmarkMath/max/y=sin(x)/delta=1.000000/start_x=-1/end_x=2-4                            	16381138	        62.7 ns/op	       0 B/op	       0 allocs/op
+			`)
+	benches, err := ParseBenchmarks(r)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	groupedResults := benches[0].GroupResults([]string{"y"})
+
+	// sort by key names to ensure consistent iteration order
+	groupNames := make([]string, len(groupedResults))
+	i := 0
+	for k := range groupedResults {
+		groupNames[i] = k
+		i++
+	}
+	sort.Strings(groupNames)
+
+	for _, k := range groupNames {
+		fmt.Println(k)
+		v := groupedResults[k]
+
+		times := make([]float64, len(v))
+		for i, res := range v {
+			times[i] = res.Outputs.NsPerOp
+		}
+		fmt.Printf("ns per op = %v\n", times)
+	}
+	// Output:
+	// y=2x+3
+	// ns per op = [13.3 20361]
+	// y=sin(x)
+	// ns per op = [55357 62.7]
 }

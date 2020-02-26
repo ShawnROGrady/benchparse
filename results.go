@@ -25,6 +25,16 @@ func (b BenchVarValue) pos() int {
 	return b.position
 }
 
+type benchVarValues []BenchVarValue
+
+func (b benchVarValues) String() string {
+	s := make([]string, len(b))
+	for i, val := range b {
+		s[i] = val.String()
+	}
+	return strings.Join(s, ",")
+}
+
 // BenchSub represents an input to the benchmark represented
 // by a sub-benchmark with a name NOT of the form 'var_name=var_value'.
 type BenchSub struct {
@@ -115,3 +125,6 @@ type BenchRes struct {
 	Inputs  BenchInputs  // the input variables
 	Outputs BenchOutputs // the output result
 }
+
+// GroupedResults represents a grouping of benchmark results.
+type GroupedResults map[string][]BenchRes
