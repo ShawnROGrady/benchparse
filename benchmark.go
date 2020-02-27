@@ -20,6 +20,8 @@ type Benchmark struct {
 	Results []BenchRes
 }
 
+// String returns the string representation of the benchmark.
+// This follows the same format as the testing.B output.
 func (b Benchmark) String() string {
 	s := make([]string, len(b.Results))
 	for i, res := range b.Results {
@@ -28,7 +30,11 @@ func (b Benchmark) String() string {
 	return strings.Join(s, "\n")
 }
 
-// GroupResults groups a benchmarks results by a specified set of inputs.
+// GroupResults groups a benchmarks results by a specified set of
+// input variable names. For example a Benchmark with Results corresponding
+// to the cases [/foo=1/bar=baz /foo=2/bar=baz /foo=1/bar=qux /foo=2/bar=qux]
+// grouped by ['foo'] would have 2 groups of results (those with Inputs where
+// foo=1 and those with Inputs where foo=2).
 func (b Benchmark) GroupResults(groupBy []string) GroupedResults {
 	groupedResults := map[string][]BenchRes{}
 	if len(groupBy) == 0 {

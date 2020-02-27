@@ -17,6 +17,12 @@ type BenchVarValue struct {
 	position int
 }
 
+// String returns the string representation of the BenchVarValue
+// with the form 'var_name=var_value'.
+// Currently the default string format ('%v') is used for the actual
+// value, meaning the string representation of a BenchVarValue may
+// vary slightly from the original input (for example precision of
+// floating point values).
 func (b BenchVarValue) String() string {
 	return fmt.Sprintf("%s=%v", b.Name, b.Value)
 }
@@ -55,13 +61,20 @@ type benchInput interface {
 	fmt.Stringer
 }
 
-// BenchInputs define a sub-benchmark.
+// BenchInputs define a sub-benchmark. For example a benchmark with
+// a full name 'BenchmarkMyType/some_method/foo=2/bar=baz-4' would be
+// defined by the Subs=[some_method], the VarValues=[foo=2 bar=baz],
+// and MaxProcs=4.
 type BenchInputs struct {
 	VarValues []BenchVarValue // sub-benchmark names of the form some_var=some_val
 	Subs      []BenchSub      // remaining components of a sub-benchmark
 	MaxProcs  int             // the value of GOMAXPROCS when the benchmark was run
 }
 
+// String returns the string representation of the BenchInputs.
+// This should be equivalent to the portion of the benchmark name
+// following the name of the top-level benchmark, but formatting
+// of VarValues may vary slightly.
 func (b BenchInputs) String() string {
 	var (
 		inputs = make([]benchInput, len(b.VarValues)+len(b.Subs))
@@ -90,8 +103,8 @@ func (b BenchInputs) String() string {
 	return s.String()
 }
 
-// BenchOutputs are the outputs of a single benchmark.
-// Just the relevant parts of https://godoc.org/golang.org/x/tools/benchmark/parse#Benchmark
+// BenchOutputs are the outputs of a single benchmark run.
+// Just the relevant parts of https://godoc.org/golang.org/x/tools/benchmark/parse#Benchmark.
 type BenchOutputs struct {
 	N                 int     // number of iterations
 	NsPerOp           float64 // nanoseconds per iteration
@@ -121,6 +134,7 @@ func (b BenchOutputs) String() string {
 }
 
 // BenchRes represents a result from a single benchmark run.
+// This corresponds to one line from the testing.B output.
 type BenchRes struct {
 	Inputs  BenchInputs  // the input variables
 	Outputs BenchOutputs // the output result
