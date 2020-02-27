@@ -89,12 +89,12 @@ func ParseBenchmarks(r io.Reader) ([]Benchmark, error) {
 		}
 
 		outputs := BenchOutputs{
-			N:                 parsed.N,
-			NsPerOp:           parsed.NsPerOp,
-			AllocedBytesPerOp: parsed.AllocedBytesPerOp,
-			AllocsPerOp:       parsed.AllocsPerOp,
-			MBPerS:            parsed.MBPerS,
-			Measured:          parsed.Measured,
+			N:                  parsed.N,
+			nsPerOp:            parsed.NsPerOp,
+			allocatedBytesPerOp: parsed.AllocedBytesPerOp,
+			allocsPerOp:        parsed.AllocsPerOp,
+			mBPerS:             parsed.MBPerS,
+			measured:           parsed.Measured,
 		}
 
 		bench.Results = append(bench.Results, BenchRes{

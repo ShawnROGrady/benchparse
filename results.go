@@ -104,31 +104,75 @@ func (b BenchInputs) String() string {
 }
 
 // BenchOutputs are the outputs of a single benchmark run.
-// Just the relevant parts of https://godoc.org/golang.org/x/tools/benchmark/parse#Benchmark.
 type BenchOutputs struct {
-	N                 int     // number of iterations
-	NsPerOp           float64 // nanoseconds per iteration
-	AllocedBytesPerOp uint64  // bytes allocated per iteration
-	AllocsPerOp       uint64  // allocs per iteration
-	MBPerS            float64 // MB processed per second
-	Measured          int     // which measurements were recorded
+	N                   int     // number of iterations
+	nsPerOp             float64 // nanoseconds per iteration
+	allocatedBytesPerOp uint64  // bytes allocated per iteration
+	allocsPerOp         uint64  // allocs per iteration
+	mBPerS              float64 // MB processed per second
+	measured            int     // which measurements were recorded
+}
+
+// NsPerOp returns the nanoseconds per iteration.
+// If not measured ErrNotMeasured is returned.
+func (b BenchOutputs) NsPerOp() (float64, error) {
+	if (b.measured & parse.NsPerOp) != 0 {
+		return b.nsPerOp, nil
+	}
+	return 0, ErrNotMeasured
+}
+
+// AllocedBytesPerOp returns the bytes allocated per iteration.
+// This is measured if either '-test.benchmem' is set when running
+// the benchmark or if testing.B.ReportAllocs() is called.
+//
+// If not measured ErrNotMeasured is returned.
+func (b BenchOutputs) AllocedBytesPerOp() (uint64, error) {
+	if (b.measured & parse.AllocedBytesPerOp) != 0 {
+		return b.allocatedBytesPerOp, nil
+	}
+	return 0, ErrNotMeasured
+}
+
+// AllocsPerOp returns the allocs per iteration.
+// This is measured if either '-test.benchmem' is set when running
+// the benchmark or if testing.B.ReportAllocs() is called.
+//
+// If not measured ErrNotMeasured is returned.
+func (b BenchOutputs) AllocsPerOp() (uint64, error) {
+	if (b.measured & parse.AllocsPerOp) != 0 {
+		return b.allocsPerOp, nil
+	}
+	return 0, ErrNotMeasured
+}
+
+// MBPerS returns the MB processed per second.
+// This is measured if testing.B.SetBytes() is
+// called.
+//
+// If not measured ErrNotMeasured is returned.
+func (b BenchOutputs) MBPerS() (float64, error) {
+	if (b.measured & parse.MBPerS) != 0 {
+		return b.mBPerS, nil
+	}
+	return 0, ErrNotMeasured
 }
 
 func (b BenchOutputs) String() string {
 	// just the relevant parts of https://godoc.org/golang.org/x/tools/benchmark/parse#Benchmark.String
 	var s strings.Builder
 	s.WriteString(strconv.Itoa(b.N))
-	if (b.Measured & parse.NsPerOp) != 0 {
-		fmt.Fprintf(&s, " %.2f ns/op", b.NsPerOp)
+	if (b.measured & parse.NsPerOp) != 0 {
+		fmt.Fprintf(&s, " %.2f ns/op", b.nsPerOp)
 	}
-	if (b.Measured & parse.MBPerS) != 0 {
-		fmt.Fprintf(&s, " %.2f MB/s", b.MBPerS)
+	if (b.measured & parse.MBPerS) != 0 {
+		fmt.Fprintf(&s, " %.2f MB/s", b.mBPerS)
 	}
-	if (b.Measured & parse.AllocedBytesPerOp) != 0 {
-		fmt.Fprintf(&s, " %d B/op", b.AllocedBytesPerOp)
+	if (b.measured & parse.AllocedBytesPerOp) != 0 {
+		fmt.Fprintf(&s, " %d B/op", b.allocatedBytesPerOp)
 	}
-	if (b.Measured & parse.AllocsPerOp) != 0 {
-		fmt.Fprintf(&s, " %d allocs/op", b.AllocsPerOp)
+	if (b.measured & parse.AllocsPerOp) != 0 {
+		fmt.Fprintf(&s, " %d allocs/op", b.allocsPerOp)
 	}
 	return s.String()
 }
