@@ -78,7 +78,7 @@ var parseBenchmarksTests = map[string]struct {
 	expectedBenchmarks []Benchmark
 	expectErr          bool
 }{
-	"1_bench_2_subs": {
+	"1_bench_4_cases_benchmem_set": {
 		resultSet: `
 			goos: darwin
 			goarch: amd64
@@ -89,6 +89,103 @@ var parseBenchmarksTests = map[string]struct {
 			PASS
 			`,
 		expectedBenchmarks: []Benchmark{sampleBench},
+	},
+	"1_bench_2_cases_bytes_set": {
+		resultSet: `
+			BenchmarkParseBenchmarks/num_benchmarks=1/cases_per_bench=5-4              37098             31052 ns/op     5.31 MB/s
+			BenchmarkParseBenchmarks/num_benchmarks=1/cases_per_bench=10-4             23004             52099 ns/op     6.33 MB/s
+			`,
+		expectedBenchmarks: []Benchmark{{
+			Name: "BenchmarkParseBenchmarks",
+			Results: []BenchRes{
+				{
+					Inputs: BenchInputs{
+						VarValues: []BenchVarValue{
+							{Name: "num_benchmarks", Value: 1, position: 1},
+							{Name: "cases_per_bench", Value: 5, position: 2},
+						},
+						Subs:     []BenchSub{},
+						MaxProcs: 4,
+					},
+					Outputs: BenchOutputs{N: 37098, NsPerOp: 31052, MBPerS: 5.31, Measured: parse.NsPerOp | parse.MBPerS},
+				},
+				{
+					Inputs: BenchInputs{
+						VarValues: []BenchVarValue{
+							{Name: "num_benchmarks", Value: 1, position: 1},
+							{Name: "cases_per_bench", Value: 10, position: 2},
+						},
+						Subs:     []BenchSub{},
+						MaxProcs: 4,
+					},
+					Outputs: BenchOutputs{N: 23004, NsPerOp: 52099, MBPerS: 6.33, Measured: parse.NsPerOp | parse.MBPerS},
+				},
+			},
+		}},
+	},
+	"2_benches_2_cases": {
+		resultSet: `
+			BenchmarkParseBenchmarks/num_benchmarks=1/cases_per_bench=5              37098             31052 ns/op
+			BenchmarkParseBenchmarks/num_benchmarks=1/cases_per_bench=10             23004             52099 ns/op
+			BenchmarkParseInfo/num_values=1/dtype=int                 624967              1721 ns/op
+			BenchmarkParseInfo/num_values=1/dtype=float64             509164              2239 ns/op
+			`,
+		expectedBenchmarks: []Benchmark{
+			{
+				Name: "BenchmarkParseBenchmarks",
+				Results: []BenchRes{
+					{
+						Inputs: BenchInputs{
+							VarValues: []BenchVarValue{
+								{Name: "num_benchmarks", Value: 1, position: 1},
+								{Name: "cases_per_bench", Value: 5, position: 2},
+							},
+							Subs:     []BenchSub{},
+							MaxProcs: 1,
+						},
+						Outputs: BenchOutputs{N: 37098, NsPerOp: 31052, Measured: parse.NsPerOp},
+					},
+					{
+						Inputs: BenchInputs{
+							VarValues: []BenchVarValue{
+								{Name: "num_benchmarks", Value: 1, position: 1},
+								{Name: "cases_per_bench", Value: 10, position: 2},
+							},
+							Subs:     []BenchSub{},
+							MaxProcs: 1,
+						},
+						Outputs: BenchOutputs{N: 23004, NsPerOp: 52099, Measured: parse.NsPerOp},
+					},
+				},
+			},
+			{
+				Name: "BenchmarkParseInfo",
+				Results: []BenchRes{
+					{
+						Inputs: BenchInputs{
+							VarValues: []BenchVarValue{
+								{Name: "num_values", Value: 1, position: 1},
+								{Name: "dtype", Value: "int", position: 2},
+							},
+							Subs:     []BenchSub{},
+							MaxProcs: 1,
+						},
+						Outputs: BenchOutputs{N: 624967, NsPerOp: 1721, Measured: parse.NsPerOp},
+					},
+					{
+						Inputs: BenchInputs{
+							VarValues: []BenchVarValue{
+								{Name: "num_values", Value: 1, position: 1},
+								{Name: "dtype", Value: "float64", position: 2},
+							},
+							Subs:     []BenchSub{},
+							MaxProcs: 1,
+						},
+						Outputs: BenchOutputs{N: 509164, NsPerOp: 2239, Measured: parse.NsPerOp},
+					},
+				},
+			},
+		},
 	},
 }
 
@@ -108,6 +205,11 @@ func TestParseBencharks(t *testing.T) {
 				t.Fatalf("unexpectedly no error")
 			}
 
+			// sort the benchmarks by name for consistent results
+			sort.Slice(benchmarks, func(i, j int) bool {
+				return benchmarks[i].Name < benchmarks[j].Name
+			})
+
 			if !reflect.DeepEqual(benchmarks, testCase.expectedBenchmarks) {
 				t.Errorf("unexpected parsed benchmarks\nexpected:\n%v\nactual:\n%v", testCase.expectedBenchmarks, benchmarks)
 			}
@@ -115,16 +217,90 @@ func TestParseBencharks(t *testing.T) {
 	}
 }
 
-func TestBenchmarkString(t *testing.T) {
-	bench := sampleBench
-	s := bench.String()
-	// slightly different float precision than input
-	expectedString := `BenchmarkMath/areaUnder/y=sin(x)/delta=0.001/start_x=-2/end_x=1/abs_val=true-4 21801 55357.00 ns/op 0 B/op 0 allocs/op
+var benchmarkStringTests = map[string]struct {
+	bench          Benchmark
+	expectedString string
+}{
+	"benchmem_enabled": {
+		bench: sampleBench,
+		// slightly different float precision than input
+		expectedString: `BenchmarkMath/areaUnder/y=sin(x)/delta=0.001/start_x=-2/end_x=1/abs_val=true-4 21801 55357.00 ns/op 0 B/op 0 allocs/op
 BenchmarkMath/areaUnder/y=2x+3/delta=1/start_x=-1/end_x=2/abs_val=false-4 88335925 13.30 ns/op 0 B/op 0 allocs/op
 BenchmarkMath/max/y=2x+3/delta=0.001/start_x=-2/end_x=1-4 56282 20361.00 ns/op 0 B/op 0 allocs/op
-BenchmarkMath/max/y=sin(x)/delta=1/start_x=-1/end_x=2-4 16381138 62.70 ns/op 0 B/op 0 allocs/op`
-	if s != expectedString {
-		t.Errorf("unexpected string\nexpected:\n%s\nactual:\n%s", expectedString, s)
+BenchmarkMath/max/y=sin(x)/delta=1/start_x=-1/end_x=2-4 16381138 62.70 ns/op 0 B/op 0 allocs/op`,
+	},
+	"bytes_set": {
+		bench: Benchmark{
+			Name: "BenchmarkParseBenchmarks",
+			Results: []BenchRes{
+				{
+					Inputs: BenchInputs{
+						VarValues: []BenchVarValue{
+							{Name: "num_benchmarks", Value: 1, position: 1},
+							{Name: "cases_per_bench", Value: 5, position: 2},
+						},
+						Subs:     []BenchSub{},
+						MaxProcs: 4,
+					},
+					Outputs: BenchOutputs{N: 37098, NsPerOp: 31052, MBPerS: 5.31, Measured: parse.NsPerOp | parse.MBPerS},
+				},
+				{
+					Inputs: BenchInputs{
+						VarValues: []BenchVarValue{
+							{Name: "num_benchmarks", Value: 1, position: 1},
+							{Name: "cases_per_bench", Value: 10, position: 2},
+						},
+						Subs:     []BenchSub{},
+						MaxProcs: 4,
+					},
+					Outputs: BenchOutputs{N: 23004, NsPerOp: 52099, MBPerS: 6.33, Measured: parse.NsPerOp | parse.MBPerS},
+				},
+			},
+		},
+		expectedString: `BenchmarkParseBenchmarks/num_benchmarks=1/cases_per_bench=5-4 37098 31052.00 ns/op 5.31 MB/s
+BenchmarkParseBenchmarks/num_benchmarks=1/cases_per_bench=10-4 23004 52099.00 ns/op 6.33 MB/s`,
+	},
+	"go_max_procs=1": {
+		bench: Benchmark{
+			Name: "BenchmarkParseBenchmarks",
+			Results: []BenchRes{
+				{
+					Inputs: BenchInputs{
+						VarValues: []BenchVarValue{
+							{Name: "num_benchmarks", Value: 1, position: 1},
+							{Name: "cases_per_bench", Value: 5, position: 2},
+						},
+						Subs:     []BenchSub{},
+						MaxProcs: 1,
+					},
+					Outputs: BenchOutputs{N: 37098, NsPerOp: 31052, Measured: parse.NsPerOp},
+				},
+				{
+					Inputs: BenchInputs{
+						VarValues: []BenchVarValue{
+							{Name: "num_benchmarks", Value: 1, position: 1},
+							{Name: "cases_per_bench", Value: 10, position: 2},
+						},
+						Subs:     []BenchSub{},
+						MaxProcs: 1,
+					},
+					Outputs: BenchOutputs{N: 23004, NsPerOp: 52099, Measured: parse.NsPerOp},
+				},
+			},
+		},
+		expectedString: `BenchmarkParseBenchmarks/num_benchmarks=1/cases_per_bench=5 37098 31052.00 ns/op
+BenchmarkParseBenchmarks/num_benchmarks=1/cases_per_bench=10 23004 52099.00 ns/op`,
+	},
+}
+
+func TestBenchmarkString(t *testing.T) {
+	for testName, testCase := range benchmarkStringTests {
+		t.Run(testName, func(t *testing.T) {
+			s := testCase.bench.String()
+			if s != testCase.expectedString {
+				t.Errorf("unexpected string\nexpected:\n%s\nactual:\n%s", testCase.expectedString, s)
+			}
+		})
 	}
 }
 
@@ -212,6 +388,7 @@ func benchmarkParseBenchmarks(b *testing.B, numBenchmarks, casesPerBench int) {
 				}
 			}
 		}
+		b.SetBytes(int64(buf.Len()))
 		return &buf
 	}
 

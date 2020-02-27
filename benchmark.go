@@ -120,7 +120,7 @@ func parseInfo(s string) (string, BenchInputs, error) {
 	}
 	info := submatches[1]
 	// number at the end of benchmark name represents GOMAXPROCS: https://golang.org/src/testing/benchmark.go#L548
-	if len(submatches) == 3 {
+	if len(submatches) == 3 && submatches[2] != "" {
 		var err error
 		maxProcs, err = strconv.Atoi(submatches[2])
 		if err != nil {
