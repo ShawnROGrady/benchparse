@@ -104,77 +104,89 @@ func (b BenchInputs) String() string {
 }
 
 // BenchOutputs are the outputs of a single benchmark run.
-type BenchOutputs struct {
-	N                   int     // number of iterations
-	nsPerOp             float64 // nanoseconds per iteration
-	allocatedBytesPerOp uint64  // bytes allocated per iteration
-	allocsPerOp         uint64  // allocs per iteration
-	mBPerS              float64 // MB processed per second
-	measured            int     // which measurements were recorded
+//
+// Since not all output values are measured on each benchmark
+// run, the getter for these values will return ErrNotMeasured
+// if this is the case.
+type BenchOutputs interface {
+	GetIterations() int
+	GetNsPerOp() (float64, error)
+	GetAllocedBytesPerOp() (uint64, error) // measured if either '-test.benchmem' is set of if testing.B.ReportAllocs() is called
+	GetAllocsPerOp() (uint64, error)       // measured if either '-test.benchmem' is set of if testing.B.ReportAllocs() is called
+	GetMBPerS() (float64, error)           // measured if testing.B.SetBytes() is called
 }
 
-// NsPerOp returns the nanoseconds per iteration.
+func benchOutputsString(b BenchOutputs) string {
+	var s strings.Builder
+	s.WriteString(strconv.Itoa(b.GetIterations()))
+	if nsPerOp, err := b.GetNsPerOp(); err == nil {
+		fmt.Fprintf(&s, " %.2f ns/op", nsPerOp)
+	}
+	if mbPerS, err := b.GetMBPerS(); err == nil {
+		fmt.Fprintf(&s, " %.2f MB/s", mbPerS)
+	}
+	if bPerOp, err := b.GetAllocedBytesPerOp(); err == nil {
+		fmt.Fprintf(&s, " %d B/op", bPerOp)
+	}
+	if allocsPerOp, err := b.GetAllocsPerOp(); err == nil {
+		fmt.Fprintf(&s, " %d allocs/op", allocsPerOp)
+	}
+	return s.String()
+}
+
+// parsedBenchOutputs wraps the parse.Benchmark type to
+// implement the BenchOutputs interface.
+type parsedBenchOutputs struct {
+	parse.Benchmark
+}
+
+func (b parsedBenchOutputs) GetIterations() int {
+	return b.N
+}
+
+// GetNsPerOp returns the nanoseconds per iteration.
 // If not measured ErrNotMeasured is returned.
-func (b BenchOutputs) NsPerOp() (float64, error) {
-	if (b.measured & parse.NsPerOp) != 0 {
-		return b.nsPerOp, nil
+func (b parsedBenchOutputs) GetNsPerOp() (float64, error) {
+	if (b.Measured & parse.NsPerOp) != 0 {
+		return b.NsPerOp, nil
 	}
 	return 0, ErrNotMeasured
 }
 
-// AllocedBytesPerOp returns the bytes allocated per iteration.
+// GetAllocedBytesPerOp returns the bytes allocated per iteration.
 // This is measured if either '-test.benchmem' is set when running
 // the benchmark or if testing.B.ReportAllocs() is called.
 //
 // If not measured ErrNotMeasured is returned.
-func (b BenchOutputs) AllocedBytesPerOp() (uint64, error) {
-	if (b.measured & parse.AllocedBytesPerOp) != 0 {
-		return b.allocatedBytesPerOp, nil
+func (b parsedBenchOutputs) GetAllocedBytesPerOp() (uint64, error) {
+	if (b.Measured & parse.AllocedBytesPerOp) != 0 {
+		return b.AllocedBytesPerOp, nil
 	}
 	return 0, ErrNotMeasured
 }
 
-// AllocsPerOp returns the allocs per iteration.
+// GetAllocsPerOp returns the allocs per iteration.
 // This is measured if either '-test.benchmem' is set when running
 // the benchmark or if testing.B.ReportAllocs() is called.
 //
 // If not measured ErrNotMeasured is returned.
-func (b BenchOutputs) AllocsPerOp() (uint64, error) {
-	if (b.measured & parse.AllocsPerOp) != 0 {
-		return b.allocsPerOp, nil
+func (b parsedBenchOutputs) GetAllocsPerOp() (uint64, error) {
+	if (b.Measured & parse.AllocsPerOp) != 0 {
+		return b.AllocsPerOp, nil
 	}
 	return 0, ErrNotMeasured
 }
 
-// MBPerS returns the MB processed per second.
+// GetMBPerS returns the MB processed per second.
 // This is measured if testing.B.SetBytes() is
 // called.
 //
 // If not measured ErrNotMeasured is returned.
-func (b BenchOutputs) MBPerS() (float64, error) {
-	if (b.measured & parse.MBPerS) != 0 {
-		return b.mBPerS, nil
+func (b parsedBenchOutputs) GetMBPerS() (float64, error) {
+	if (b.Measured & parse.MBPerS) != 0 {
+		return b.MBPerS, nil
 	}
 	return 0, ErrNotMeasured
-}
-
-func (b BenchOutputs) String() string {
-	// just the relevant parts of https://godoc.org/golang.org/x/tools/benchmark/parse#Benchmark.String
-	var s strings.Builder
-	s.WriteString(strconv.Itoa(b.N))
-	if (b.measured & parse.NsPerOp) != 0 {
-		fmt.Fprintf(&s, " %.2f ns/op", b.nsPerOp)
-	}
-	if (b.measured & parse.MBPerS) != 0 {
-		fmt.Fprintf(&s, " %.2f MB/s", b.mBPerS)
-	}
-	if (b.measured & parse.AllocedBytesPerOp) != 0 {
-		fmt.Fprintf(&s, " %d B/op", b.allocatedBytesPerOp)
-	}
-	if (b.measured & parse.AllocsPerOp) != 0 {
-		fmt.Fprintf(&s, " %d allocs/op", b.allocsPerOp)
-	}
-	return s.String()
 }
 
 // BenchRes represents a result from a single benchmark run.

@@ -28,7 +28,7 @@ var sampleBench = Benchmark{
 				},
 				MaxProcs: 4,
 			},
-			Outputs: BenchOutputs{N: 21801, nsPerOp: 55357, measured: parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp},
+			Outputs: parsedBenchOutputs{parse.Benchmark{Name: "BenchmarkMath/areaUnder/y=sin(x)/delta=0.001000/start_x=-2/end_x=1/abs_val=true-4", N: 21801, NsPerOp: 55357, Measured: parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp}},
 		},
 		{
 			Inputs: BenchInputs{
@@ -42,7 +42,7 @@ var sampleBench = Benchmark{
 				},
 				MaxProcs: 4,
 			},
-			Outputs: BenchOutputs{N: 88335925, nsPerOp: 13.3, measured: parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp},
+			Outputs: parsedBenchOutputs{parse.Benchmark{Name: "BenchmarkMath/areaUnder/y=2x+3/delta=1.000000/start_x=-1/end_x=2/abs_val=false-4", N: 88335925, NsPerOp: 13.3, Measured: parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp}},
 		},
 		{
 			Inputs: BenchInputs{
@@ -55,7 +55,7 @@ var sampleBench = Benchmark{
 				},
 				MaxProcs: 4,
 			},
-			Outputs: BenchOutputs{N: 56282, nsPerOp: 20361, measured: parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp},
+			Outputs: parsedBenchOutputs{parse.Benchmark{Name: "BenchmarkMath/max/y=2x+3/delta=0.001000/start_x=-2/end_x=1-4", N: 56282, NsPerOp: 20361, Measured: parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp}},
 		},
 		{
 			Inputs: BenchInputs{
@@ -68,7 +68,7 @@ var sampleBench = Benchmark{
 				},
 				MaxProcs: 4,
 			},
-			Outputs: BenchOutputs{N: 16381138, nsPerOp: 62.7, measured: parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp},
+			Outputs: parsedBenchOutputs{parse.Benchmark{Name: "BenchmarkMath/max/y=sin(x)/delta=1.000000/start_x=-1/end_x=2-4", N: 16381138, NsPerOp: 62.7, Measured: parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp}},
 		},
 	},
 }
@@ -107,7 +107,7 @@ var parseBenchmarksTests = map[string]struct {
 						Subs:     []BenchSub{},
 						MaxProcs: 4,
 					},
-					Outputs: BenchOutputs{N: 37098, nsPerOp: 31052, mBPerS: 5.31, measured: parse.NsPerOp | parse.MBPerS},
+					Outputs: parsedBenchOutputs{parse.Benchmark{Name: "BenchmarkParseBenchmarks/num_benchmarks=1/cases_per_bench=5-4", N: 37098, NsPerOp: 31052, MBPerS: 5.31, Measured: parse.NsPerOp | parse.MBPerS}},
 				},
 				{
 					Inputs: BenchInputs{
@@ -118,7 +118,7 @@ var parseBenchmarksTests = map[string]struct {
 						Subs:     []BenchSub{},
 						MaxProcs: 4,
 					},
-					Outputs: BenchOutputs{N: 23004, nsPerOp: 52099, mBPerS: 6.33, measured: parse.NsPerOp | parse.MBPerS},
+					Outputs: parsedBenchOutputs{parse.Benchmark{Name: "BenchmarkParseBenchmarks/num_benchmarks=1/cases_per_bench=10-4", N: 23004, NsPerOp: 52099, MBPerS: 6.33, Measured: parse.NsPerOp | parse.MBPerS}},
 				},
 			},
 		}},
@@ -143,7 +143,7 @@ var parseBenchmarksTests = map[string]struct {
 							Subs:     []BenchSub{},
 							MaxProcs: 1,
 						},
-						Outputs: BenchOutputs{N: 37098, nsPerOp: 31052, measured: parse.NsPerOp},
+						Outputs: parsedBenchOutputs{parse.Benchmark{Name: "BenchmarkParseBenchmarks/num_benchmarks=1/cases_per_bench=5", N: 37098, NsPerOp: 31052, Measured: parse.NsPerOp}},
 					},
 					{
 						Inputs: BenchInputs{
@@ -154,7 +154,7 @@ var parseBenchmarksTests = map[string]struct {
 							Subs:     []BenchSub{},
 							MaxProcs: 1,
 						},
-						Outputs: BenchOutputs{N: 23004, nsPerOp: 52099, measured: parse.NsPerOp},
+						Outputs: parsedBenchOutputs{parse.Benchmark{Name: "BenchmarkParseBenchmarks/num_benchmarks=1/cases_per_bench=10", N: 23004, NsPerOp: 52099, Measured: parse.NsPerOp}},
 					},
 				},
 			},
@@ -170,7 +170,7 @@ var parseBenchmarksTests = map[string]struct {
 							Subs:     []BenchSub{},
 							MaxProcs: 1,
 						},
-						Outputs: BenchOutputs{N: 624967, nsPerOp: 1721, measured: parse.NsPerOp},
+						Outputs: parsedBenchOutputs{parse.Benchmark{Name: "BenchmarkParseInfo/num_values=1/dtype=int", N: 624967, NsPerOp: 1721, Measured: parse.NsPerOp}},
 					},
 					{
 						Inputs: BenchInputs{
@@ -181,7 +181,7 @@ var parseBenchmarksTests = map[string]struct {
 							Subs:     []BenchSub{},
 							MaxProcs: 1,
 						},
-						Outputs: BenchOutputs{N: 509164, nsPerOp: 2239, measured: parse.NsPerOp},
+						Outputs: parsedBenchOutputs{parse.Benchmark{Name: "BenchmarkParseInfo/num_values=1/dtype=float64", N: 509164, NsPerOp: 2239, Measured: parse.NsPerOp}},
 					},
 				},
 			},
@@ -242,7 +242,7 @@ BenchmarkMath/max/y=sin(x)/delta=1/start_x=-1/end_x=2-4 16381138 62.70 ns/op 0 B
 						Subs:     []BenchSub{},
 						MaxProcs: 4,
 					},
-					Outputs: BenchOutputs{N: 37098, nsPerOp: 31052, mBPerS: 5.31, measured: parse.NsPerOp | parse.MBPerS},
+					Outputs: parsedBenchOutputs{parse.Benchmark{N: 37098, NsPerOp: 31052, MBPerS: 5.31, Measured: parse.NsPerOp | parse.MBPerS}},
 				},
 				{
 					Inputs: BenchInputs{
@@ -253,7 +253,7 @@ BenchmarkMath/max/y=sin(x)/delta=1/start_x=-1/end_x=2-4 16381138 62.70 ns/op 0 B
 						Subs:     []BenchSub{},
 						MaxProcs: 4,
 					},
-					Outputs: BenchOutputs{N: 23004, nsPerOp: 52099, mBPerS: 6.33, measured: parse.NsPerOp | parse.MBPerS},
+					Outputs: parsedBenchOutputs{parse.Benchmark{N: 23004, NsPerOp: 52099, MBPerS: 6.33, Measured: parse.NsPerOp | parse.MBPerS}},
 				},
 			},
 		},
@@ -273,7 +273,7 @@ BenchmarkParseBenchmarks/num_benchmarks=1/cases_per_bench=10-4 23004 52099.00 ns
 						Subs:     []BenchSub{},
 						MaxProcs: 1,
 					},
-					Outputs: BenchOutputs{N: 37098, nsPerOp: 31052, measured: parse.NsPerOp},
+					Outputs: parsedBenchOutputs{parse.Benchmark{N: 37098, NsPerOp: 31052, Measured: parse.NsPerOp}},
 				},
 				{
 					Inputs: BenchInputs{
@@ -284,7 +284,7 @@ BenchmarkParseBenchmarks/num_benchmarks=1/cases_per_bench=10-4 23004 52099.00 ns
 						Subs:     []BenchSub{},
 						MaxProcs: 1,
 					},
-					Outputs: BenchOutputs{N: 23004, nsPerOp: 52099, measured: parse.NsPerOp},
+					Outputs: parsedBenchOutputs{parse.Benchmark{N: 23004, NsPerOp: 52099, Measured: parse.NsPerOp}},
 				},
 			},
 		},
@@ -333,7 +333,7 @@ func ExampleParseBenchmarks() {
 
 			fmt.Printf("var values = %q\n", varValues)
 			fmt.Printf("other subs = %q\n", otherSubs)
-			nsPerOp, err := res.Outputs.NsPerOp()
+			nsPerOp, err := res.Outputs.GetNsPerOp()
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -562,7 +562,7 @@ func ExampleBenchmark_GroupResults() {
 
 		times := make([]float64, len(v))
 		for i, res := range v {
-			nsPerOp, err := res.Outputs.NsPerOp()
+			nsPerOp, err := res.Outputs.GetNsPerOp()
 			if err != nil {
 				log.Fatal(err)
 			}

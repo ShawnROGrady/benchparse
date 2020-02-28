@@ -25,7 +25,7 @@ type Benchmark struct {
 func (b Benchmark) String() string {
 	s := make([]string, len(b.Results))
 	for i, res := range b.Results {
-		s[i] = fmt.Sprintf("%s%s %s", b.Name, res.Inputs, res.Outputs)
+		s[i] = fmt.Sprintf("%s%s %s", b.Name, res.Inputs, benchOutputsString(res.Outputs))
 	}
 	return strings.Join(s, "\n")
 }
@@ -88,14 +88,7 @@ func ParseBenchmarks(r io.Reader) ([]Benchmark, error) {
 			bench = Benchmark{Name: benchName, Results: []BenchRes{}}
 		}
 
-		outputs := BenchOutputs{
-			N:                  parsed.N,
-			nsPerOp:            parsed.NsPerOp,
-			allocatedBytesPerOp: parsed.AllocedBytesPerOp,
-			allocsPerOp:        parsed.AllocsPerOp,
-			mBPerS:             parsed.MBPerS,
-			measured:           parsed.Measured,
-		}
+		outputs := parsedBenchOutputs{*parsed}
 
 		bench.Results = append(bench.Results, BenchRes{
 			Inputs:  inputs,

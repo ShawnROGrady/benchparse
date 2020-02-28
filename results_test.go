@@ -7,7 +7,7 @@ import (
 )
 
 var getOutputMeasurementTests = map[string]struct {
-	output                       BenchOutputs
+	output                       parsedBenchOutputs
 	expectedNsPerOp              float64
 	expectedNsPerOpErr           error
 	expectedAllocedBytesPerOp    uint64
@@ -18,46 +18,46 @@ var getOutputMeasurementTests = map[string]struct {
 	expectedMBPerSErr            error
 }{
 	"all_set": {
-		output: BenchOutputs{
-			N:                   21801,
-			nsPerOp:             55357,
-			allocatedBytesPerOp: 4321,
-			allocsPerOp:         21,
-			mBPerS:              0.12,
-			measured:            parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp | parse.MBPerS,
-		},
+		output: parsedBenchOutputs{parse.Benchmark{
+			N:                 21801,
+			NsPerOp:           55357,
+			AllocedBytesPerOp: 4321,
+			AllocsPerOp:       21,
+			MBPerS:            0.12,
+			Measured:          parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp | parse.MBPerS,
+		}},
 		expectedNsPerOp:           55357,
 		expectedAllocedBytesPerOp: 4321,
 		expectedAllocsPerOp:       21,
 		expectedMBPerS:            0.12,
 	},
 	"benchmem_not_set_with_set_bytes": {
-		output: BenchOutputs{
+		output: parsedBenchOutputs{parse.Benchmark{
 			N:        21801,
-			nsPerOp:  55357,
-			mBPerS:   0.12,
-			measured: parse.NsPerOp | parse.MBPerS,
-		},
+			NsPerOp:  55357,
+			MBPerS:   0.12,
+			Measured: parse.NsPerOp | parse.MBPerS,
+		}},
 		expectedNsPerOp:              55357,
 		expectedAllocedBytesPerOpErr: ErrNotMeasured,
 		expectedAllocsPerOpErr:       ErrNotMeasured,
 		expectedMBPerS:               0.12,
 	},
 	"benchmem_set_but_no_allocs": {
-		output: BenchOutputs{
-			N:                   21801,
-			nsPerOp:             55357,
-			allocatedBytesPerOp: 0,
-			allocsPerOp:         0,
-			measured:            parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp,
-		},
+		output: parsedBenchOutputs{parse.Benchmark{
+			N:                 21801,
+			NsPerOp:           55357,
+			AllocedBytesPerOp: 0,
+			AllocsPerOp:       0,
+			Measured:          parse.NsPerOp | parse.AllocedBytesPerOp | parse.AllocsPerOp,
+		}},
 		expectedNsPerOp:           55357,
 		expectedAllocedBytesPerOp: 0,
 		expectedAllocsPerOp:       0,
 		expectedMBPerSErr:         ErrNotMeasured,
 	},
 	"none_set": {
-		output:                       BenchOutputs{},
+		output:                       parsedBenchOutputs{},
 		expectedNsPerOpErr:           ErrNotMeasured,
 		expectedAllocedBytesPerOpErr: ErrNotMeasured,
 		expectedAllocsPerOpErr:       ErrNotMeasured,
@@ -84,9 +84,9 @@ func TestGetOutputMeasumentTests(t *testing.T) {
 	}
 }
 
-func testNsPerOp(t *testing.T, b BenchOutputs, expectedV float64, expectedErr error) {
+func testNsPerOp(t *testing.T, b parsedBenchOutputs, expectedV float64, expectedErr error) {
 	t.Helper()
-	ns, err := b.NsPerOp()
+	ns, err := b.GetNsPerOp()
 	if err != nil {
 		if expectedErr != nil {
 			if err != expectedErr {
@@ -107,9 +107,9 @@ func testNsPerOp(t *testing.T, b BenchOutputs, expectedV float64, expectedErr er
 	}
 }
 
-func testAllocedBytesPerOp(t *testing.T, b BenchOutputs, expectedV uint64, expectedErr error) {
+func testAllocedBytesPerOp(t *testing.T, b parsedBenchOutputs, expectedV uint64, expectedErr error) {
 	t.Helper()
-	v, err := b.AllocedBytesPerOp()
+	v, err := b.GetAllocedBytesPerOp()
 	if err != nil {
 		if expectedErr != nil {
 			if err != expectedErr {
@@ -130,9 +130,9 @@ func testAllocedBytesPerOp(t *testing.T, b BenchOutputs, expectedV uint64, expec
 	}
 }
 
-func testAllocsPerOp(t *testing.T, b BenchOutputs, expectedV uint64, expectedErr error) {
+func testAllocsPerOp(t *testing.T, b parsedBenchOutputs, expectedV uint64, expectedErr error) {
 	t.Helper()
-	v, err := b.AllocsPerOp()
+	v, err := b.GetAllocsPerOp()
 	if err != nil {
 		if expectedErr != nil {
 			if err != expectedErr {
@@ -153,9 +153,9 @@ func testAllocsPerOp(t *testing.T, b BenchOutputs, expectedV uint64, expectedErr
 	}
 }
 
-func testMBPerS(t *testing.T, b BenchOutputs, expectedV float64, expectedErr error) {
+func testMBPerS(t *testing.T, b parsedBenchOutputs, expectedV float64, expectedErr error) {
 	t.Helper()
-	v, err := b.MBPerS()
+	v, err := b.GetMBPerS()
 	if err != nil {
 		if expectedErr != nil {
 			if err != expectedErr {
