@@ -159,6 +159,10 @@ func (b BenchInputs) String() string {
 	return s.String()
 }
 
+// ErrNotMeasured indicates that a specific output
+// was not measured.
+var ErrNotMeasured = errors.New("not measured")
+
 // BenchOutputs are the outputs of a single benchmark run.
 //
 // Since not all output values are measured on each benchmark
