@@ -3,6 +3,7 @@ package benchparse
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // Comparison represents a comparison operation.
@@ -20,8 +21,8 @@ const (
 
 // Possible comparison errors.
 var (
-	ErrOperationNotDefined = errors.New("operation not defined for values")
-	ErrNonComparable       = errors.New("values cannot be compared")
+	errOperationNotDefined = errors.New("operation not defined for values")
+	errNonComparable       = errors.New("values cannot be compared")
 	errDifferentNames      = errors.New("variables have different names")
 	errInvalidOperation    = errors.New("invalid comparison operation")
 )
@@ -90,4 +91,39 @@ func (c Comparison) compare(v1, v2 BenchVarValue) (bool, error) {
 	default:
 		return false, compareErr{val1: v1, val2: v2, comparison: c, err: errInvalidOperation}
 	}
+}
+
+type varValComp struct {
+	varValue BenchVarValue
+	cmp      Comparison
+}
+
+func (v varValComp) String() string {
+	return fmt.Sprintf("%s%s%v", v.varValue.Name, v.cmp, v.varValue.Value)
+}
+
+func parseValueComparison(in string) (varValComp, error) {
+	cmps := []Comparison{
+		Eq,
+		Ne,
+		Le,
+		Ge,
+		Lt,
+		Gt,
+	}
+	for _, cmp := range cmps {
+		split := strings.Split(in, string(cmp))
+		if len(split) != 2 {
+			continue
+		}
+		return varValComp{
+			varValue: BenchVarValue{
+				Name:  split[0],
+				Value: value(split[1]),
+			},
+			cmp: cmp,
+		}, nil
+	}
+
+	return varValComp{}, fmt.Errorf("input not of expected form 'var_name==var_value': %s", in)
 }

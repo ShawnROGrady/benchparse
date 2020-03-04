@@ -2,6 +2,7 @@ package benchparse
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 )
 
@@ -65,10 +66,10 @@ var compareTests = map[string]struct {
 		v2:       BenchVarValue{Name: "var1", Value: false},
 		expectEq: compareResult{res: false},
 		expectNe: compareResult{res: true},
-		expectLt: compareResult{err: ErrOperationNotDefined},
-		expectGt: compareResult{err: ErrOperationNotDefined},
-		expectLe: compareResult{err: ErrOperationNotDefined},
-		expectGe: compareResult{err: ErrOperationNotDefined},
+		expectLt: compareResult{err: errOperationNotDefined},
+		expectGt: compareResult{err: errOperationNotDefined},
+		expectLe: compareResult{err: errOperationNotDefined},
+		expectGe: compareResult{err: errOperationNotDefined},
 	},
 	"different_name_equal_int_values": {
 		v1:       BenchVarValue{Name: "var1", Value: 12},
@@ -83,12 +84,12 @@ var compareTests = map[string]struct {
 	"same_name_string_and_int_values": {
 		v1:       BenchVarValue{Name: "var1", Value: "case1"},
 		v2:       BenchVarValue{Name: "var1", Value: 3},
-		expectEq: compareResult{err: ErrNonComparable},
-		expectNe: compareResult{err: ErrNonComparable},
-		expectLt: compareResult{err: ErrNonComparable},
-		expectGt: compareResult{err: ErrNonComparable},
-		expectLe: compareResult{err: ErrNonComparable},
-		expectGe: compareResult{err: ErrNonComparable},
+		expectEq: compareResult{err: errNonComparable},
+		expectNe: compareResult{err: errNonComparable},
+		expectLt: compareResult{err: errNonComparable},
+		expectGt: compareResult{err: errNonComparable},
+		expectLe: compareResult{err: errNonComparable},
+		expectGe: compareResult{err: errNonComparable},
 	},
 }
 
@@ -220,5 +221,79 @@ func TestCompareInvalidComparison(t *testing.T) {
 	expectedErrString := "cannot evaluate (var1=12)_(var1=12): invalid comparison operation"
 	if err.Error() != expectedErrString {
 		t.Errorf("unexpected error string\nexpected=%s\nactual=%s", expectedErrString, err.Error())
+	}
+}
+
+var parseValueComparisonTests = map[string]struct {
+	expectedVarValCmp varValComp
+	expectedString    string
+	expectErr         bool
+}{
+	"var_1==2": {
+		expectedVarValCmp: varValComp{
+			varValue: BenchVarValue{Name: "var_1", Value: 2},
+			cmp:      Eq,
+		},
+		expectedString: "var_1==2",
+	},
+	"var_1!=foo": {
+		expectedVarValCmp: varValComp{
+			varValue: BenchVarValue{Name: "var_1", Value: "foo"},
+			cmp:      Ne,
+		},
+		expectedString: "var_1!=foo",
+	},
+	"var_1>2.2": {
+		expectedVarValCmp: varValComp{
+			varValue: BenchVarValue{Name: "var_1", Value: 2.2},
+			cmp:      Gt,
+		},
+		expectedString: "var_1>2.2",
+	},
+	"var_1<1": {
+		expectedVarValCmp: varValComp{
+			varValue: BenchVarValue{Name: "var_1", Value: 1},
+			cmp:      Lt,
+		},
+		expectedString: "var_1<1",
+	},
+	"var_1>=2.2": {
+		expectedVarValCmp: varValComp{
+			varValue: BenchVarValue{Name: "var_1", Value: 2.2},
+			cmp:      Ge,
+		},
+		expectedString: "var_1>=2.2",
+	},
+	"var_1<=1": {
+		expectedVarValCmp: varValComp{
+			varValue: BenchVarValue{Name: "var_1", Value: 1},
+			cmp:      Le,
+		},
+		expectedString: "var_1<=1",
+	},
+	"var1,2": {
+		expectErr: true,
+	},
+}
+
+func TestParseValueComparison(t *testing.T) {
+	for testInput, testCase := range parseValueComparisonTests {
+		t.Run(testInput, func(t *testing.T) {
+			varValCmp, err := parseValueComparison(testInput)
+			if err != nil {
+				if !testCase.expectErr {
+					t.Errorf("unexpected error: %s", err)
+				}
+				return
+			}
+
+			if !reflect.DeepEqual(varValCmp, testCase.expectedVarValCmp) {
+				t.Errorf("unexpected parsed\nexpected:%v\nactual:%v", testCase.expectedVarValCmp, varValCmp)
+			}
+
+			if testCase.expectedString != varValCmp.String() {
+				t.Errorf("unexpected parsed string\nexpected:%s\nactual:%s", testCase.expectedString, varValCmp.String())
+			}
+		})
 	}
 }

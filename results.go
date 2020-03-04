@@ -29,7 +29,7 @@ func (b BenchVarValue) equal(o BenchVarValue) (bool, error) {
 
 	// TODO: should probably allow comparison across numeric kinds (e.g. int and float)
 	if k1 != k2 {
-		return false, ErrNonComparable
+		return false, errNonComparable
 	}
 
 	switch k1 {
@@ -56,7 +56,7 @@ func (b BenchVarValue) less(o BenchVarValue) (bool, error) {
 
 	// TODO: should probably allow comparison across numeric kinds (e.g. int and float)
 	if k1 != k2 {
-		return false, ErrNonComparable
+		return false, errNonComparable
 	}
 
 	switch k1 {
@@ -69,7 +69,7 @@ func (b BenchVarValue) less(o BenchVarValue) (bool, error) {
 	case reflect.String:
 		return v1.String() < v2.String(), nil
 	default:
-		return false, ErrOperationNotDefined
+		return false, errOperationNotDefined
 	}
 }
 
@@ -255,9 +255,9 @@ type BenchRes struct {
 // BenchResults represents a list of benchmark results
 type BenchResults []BenchRes
 
-// Filter returns a subset of the BenchResults matching
+// filter returns a subset of the BenchResults matching
 // the provided filter.
-func (b BenchResults) Filter(value BenchVarValue, cmp Comparison) (BenchResults, error) {
+func (b BenchResults) filter(value BenchVarValue, cmp Comparison) (BenchResults, error) {
 	filtered := []BenchRes{}
 	for _, res := range b {
 		for _, varVal := range res.Inputs.VarValues {

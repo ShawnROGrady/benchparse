@@ -201,14 +201,14 @@ var filterTests = map[string]struct {
 		results:     sampleBench.Results,
 		filterVar:   BenchVarValue{Name: "y", Value: 2},
 		cmp:         Eq,
-		expectedErr: ErrNonComparable,
+		expectedErr: errNonComparable,
 	},
 }
 
 func TestFilter(t *testing.T) {
 	for testName, testCase := range filterTests {
 		t.Run(testName, func(t *testing.T) {
-			filtered, err := testCase.results.Filter(testCase.filterVar, testCase.cmp)
+			filtered, err := testCase.results.filter(testCase.filterVar, testCase.cmp)
 			if err != nil {
 				if !errors.Is(err, testCase.expectedErr) {
 					t.Errorf("unexpected error\nexpected=%s\nactual=%s", testCase.expectedErr, err)
