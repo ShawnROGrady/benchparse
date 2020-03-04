@@ -2,6 +2,7 @@ package benchparse
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -15,6 +16,60 @@ type BenchVarValue struct {
 	Name     string
 	Value    interface{}
 	position int
+}
+
+func (b BenchVarValue) equal(o BenchVarValue) (bool, error) {
+	if b.Name != o.Name {
+		return false, errDifferentNames
+	}
+
+	v1, v2 := reflect.ValueOf(b.Value), reflect.ValueOf(o.Value)
+	k1, k2 := v1.Type().Kind(), v2.Type().Kind()
+
+	// TODO: should probably allow comparison across numeric kinds (e.g. int and float)
+	if k1 != k2 {
+		return false, ErrNonComparable
+	}
+
+	switch k1 {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v1.Int() == v2.Int(), nil
+	case reflect.Float64, reflect.Float32:
+		return v1.Float() == v2.Float(), nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return v1.Uint() == v2.Uint(), nil
+	case reflect.String:
+		return v1.String() == v2.String(), nil
+	default:
+		return b.Value == o.Value, nil
+	}
+}
+
+func (b BenchVarValue) less(o BenchVarValue) (bool, error) {
+	if b.Name != o.Name {
+		return false, errDifferentNames
+	}
+
+	v1, v2 := reflect.ValueOf(b.Value), reflect.ValueOf(o.Value)
+	k1, k2 := v1.Type().Kind(), v2.Type().Kind()
+
+	// TODO: should probably allow comparison across numeric kinds (e.g. int and float)
+	if k1 != k2 {
+		return false, ErrNonComparable
+	}
+
+	switch k1 {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v1.Int() < v2.Int(), nil
+	case reflect.Float64, reflect.Float32:
+		return v1.Float() < v2.Float(), nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return v1.Uint() < v2.Uint(), nil
+	case reflect.String:
+		return v1.String() < v2.String(), nil
+	default:
+		return false, ErrOperationNotDefined
+	}
 }
 
 // String returns the string representation of the BenchVarValue
