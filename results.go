@@ -255,10 +255,23 @@ type BenchRes struct {
 // BenchResults represents a list of benchmark results
 type BenchResults []BenchRes
 
-// filter returns a subset of the BenchResults matching
-// the provided filter.
-func (b BenchResults) filter(value BenchVarValue, cmp Comparison) (BenchResults, error) {
-	filtered := []BenchRes{}
+// Filter returns a subset of the BenchResults matching
+// the provided filter expr. For example filtering by the
+// expression 'var1<=2' will return the results where the
+// input variable named 'var1' has a value less than or
+// equal to 2.
+func (b BenchResults) Filter(filterExpr string) (BenchResults, error) {
+	varValCmp, err := parseValueComparison(filterExpr)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing %s: %w", filterExpr, err)
+	}
+
+	var (
+		filtered = []BenchRes{}
+		cmp      = varValCmp.cmp
+		value    = varValCmp.varValue
+	)
+
 	for _, res := range b {
 		for _, varVal := range res.Inputs.VarValues {
 			include, err := cmp.compare(varVal, value)
@@ -277,5 +290,40 @@ func (b BenchResults) filter(value BenchVarValue, cmp Comparison) (BenchResults,
 	return filtered, nil
 }
 
+// Group groups a benchmarks results by a specified set of
+// input variable names. For example a Benchmark with Results corresponding
+// to the cases [/foo=1/bar=baz /foo=2/bar=baz /foo=1/bar=qux /foo=2/bar=qux]
+// grouped by ['foo'] would have 2 groups of results (those with Inputs where
+func (b BenchResults) Group(groupBy []string) GroupedResults {
+	groupedResults := map[string]BenchResults{}
+	if len(groupBy) == 0 {
+		res := make([]BenchRes, len(b))
+		copy(res, b)
+		groupedResults[""] = res
+		return groupedResults
+	}
+	for _, result := range b {
+		groupVals := benchVarValues{}
+		for _, varValue := range result.Inputs.VarValues {
+			for _, groupName := range groupBy {
+				if varValue.Name == groupName {
+					groupVals = append(groupVals, varValue)
+				}
+			}
+		}
+		if len(groupVals) != len(groupBy) {
+			continue
+		}
+
+		k := groupVals.String()
+		if existingResults, ok := groupedResults[k]; ok {
+			groupedResults[k] = append(existingResults, result)
+		} else {
+			groupedResults[k] = []BenchRes{result}
+		}
+	}
+	return groupedResults
+}
+
 // GroupedResults represents a grouping of benchmark results.
-type GroupedResults map[string][]BenchRes
+type GroupedResults map[string]BenchResults

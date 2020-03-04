@@ -2,7 +2,11 @@ package benchparse
 
 import (
 	"errors"
+	"fmt"
+	"log"
 	"reflect"
+	"sort"
+	"strings"
 	"testing"
 
 	"golang.org/x/tools/benchmark/parse"
@@ -178,37 +182,155 @@ func testMBPerS(t *testing.T, b parsedBenchOutputs, expectedV float64, expectedE
 	}
 }
 
+var groupResultsTests = map[string]struct {
+	benchmark              Benchmark
+	groupBy                []string
+	expectedGroupedResults GroupedResults
+}{
+	"group_by_1_string_var": {
+		benchmark: sampleBench,
+		groupBy:   []string{"y"},
+		expectedGroupedResults: map[string]BenchResults{
+			"y=sin(x)": []BenchRes{
+				sampleBench.Results[0],
+				sampleBench.Results[3],
+			},
+			"y=2x+3": []BenchRes{
+				sampleBench.Results[1],
+				sampleBench.Results[2],
+			},
+		},
+	},
+	"no_group_by": {
+		benchmark: sampleBench,
+		expectedGroupedResults: map[string]BenchResults{
+			"": []BenchRes{
+				sampleBench.Results[0],
+				sampleBench.Results[1],
+				sampleBench.Results[2],
+				sampleBench.Results[3],
+			},
+		},
+	},
+	"group_by_2_vars": {
+		benchmark: sampleBench,
+		groupBy:   []string{"y", "delta"},
+		expectedGroupedResults: map[string]BenchResults{
+			"y=sin(x),delta=0.001": []BenchRes{
+				sampleBench.Results[0],
+			},
+			"y=2x+3,delta=1": []BenchRes{
+				sampleBench.Results[1],
+			},
+			"y=2x+3,delta=0.001": []BenchRes{
+				sampleBench.Results[2],
+			},
+			"y=sin(x),delta=1": []BenchRes{
+				sampleBench.Results[3],
+			},
+		},
+	},
+	"group_by_sub-specific_bool_var": {
+		benchmark: sampleBench,
+		groupBy:   []string{"abs_val"}, // only present on half the results
+		expectedGroupedResults: map[string]BenchResults{
+			"abs_val=true": []BenchRes{
+				sampleBench.Results[0],
+			},
+			"abs_val=false": []BenchRes{
+				sampleBench.Results[1],
+			},
+		},
+	},
+}
+
+func TestGroupResults(t *testing.T) {
+	for testName, testCase := range groupResultsTests {
+		t.Run(testName, func(t *testing.T) {
+			grouped := testCase.benchmark.Results.Group(testCase.groupBy)
+			if !reflect.DeepEqual(grouped, testCase.expectedGroupedResults) {
+				t.Errorf("unexpected grouped results\nexpected:\n%v\nactual:\n%v", testCase.expectedGroupedResults, grouped)
+			}
+		})
+	}
+}
+
+func ExampleBenchResults_Group() {
+	r := strings.NewReader(`
+			BenchmarkMath/areaUnder/y=sin(x)/delta=0.001000/start_x=-2/end_x=1/abs_val=true-4         	   21801	     55357 ns/op	       0 B/op	       0 allocs/op
+			BenchmarkMath/areaUnder/y=2x+3/delta=1.000000/start_x=-1/end_x=2/abs_val=false-4          	88335925	        13.3 ns/op	       0 B/op	       0 allocs/op
+			BenchmarkMath/max/y=2x+3/delta=0.001000/start_x=-2/end_x=1-4                              	   56282	     20361 ns/op	       0 B/op	       0 allocs/op
+			BenchmarkMath/max/y=sin(x)/delta=1.000000/start_x=-1/end_x=2-4                            	16381138	        62.7 ns/op	       0 B/op	       0 allocs/op
+			`)
+	benches, err := ParseBenchmarks(r)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	groupedResults := benches[0].Results.Group([]string{"y"})
+
+	// sort by key names to ensure consistent iteration order
+	groupNames := make([]string, len(groupedResults))
+	i := 0
+	for k := range groupedResults {
+		groupNames[i] = k
+		i++
+	}
+	sort.Strings(groupNames)
+
+	for _, k := range groupNames {
+		fmt.Println(k)
+		v := groupedResults[k]
+
+		times := make([]float64, len(v))
+		for i, res := range v {
+			nsPerOp, err := res.Outputs.GetNsPerOp()
+			if err != nil {
+				log.Fatal(err)
+			}
+			times[i] = nsPerOp
+		}
+		fmt.Printf("ns per op = %v\n", times)
+	}
+	// Output:
+	// y=2x+3
+	// ns per op = [13.3 20361]
+	// y=sin(x)
+	// ns per op = [55357 62.7]
+}
+
 var filterTests = map[string]struct {
 	results          BenchResults
-	filterVar        BenchVarValue
-	cmp              Comparison
+	filterExpr       string
 	expectedFiltered BenchResults
 	expectedErr      error
 }{
 	"filter_by_string_eq": {
 		results:          sampleBench.Results,
-		filterVar:        BenchVarValue{Name: "y", Value: "sin(x)"},
-		cmp:              Eq,
+		filterExpr:       "y==sin(x)",
 		expectedFiltered: BenchResults{sampleBench.Results[0], sampleBench.Results[3]},
 	},
 	"filter_by_float_gt": {
 		results:          sampleBench.Results,
-		filterVar:        BenchVarValue{Name: "delta", Value: 0.01},
-		cmp:              Gt,
+		filterExpr:       "delta>0.01",
 		expectedFiltered: BenchResults{sampleBench.Results[1], sampleBench.Results[3]},
 	},
 	"non_comparable_values": {
 		results:     sampleBench.Results,
-		filterVar:   BenchVarValue{Name: "y", Value: 2},
-		cmp:         Eq,
+		filterExpr:  "y==2",
 		expectedErr: errNonComparable,
+	},
+	"invalid_filter_expr": {
+		results:     sampleBench.Results,
+		filterExpr:  "y,2",
+		expectedErr: errMalformedFilter,
 	},
 }
 
 func TestFilter(t *testing.T) {
 	for testName, testCase := range filterTests {
 		t.Run(testName, func(t *testing.T) {
-			filtered, err := testCase.results.filter(testCase.filterVar, testCase.cmp)
+			filtered, err := testCase.results.Filter(testCase.filterExpr)
 			if err != nil {
 				if !errors.Is(err, testCase.expectedErr) {
 					t.Errorf("unexpected error\nexpected=%s\nactual=%s", testCase.expectedErr, err)
@@ -221,4 +343,33 @@ func TestFilter(t *testing.T) {
 			}
 		})
 	}
+}
+
+func ExampleBenchResults_Filter() {
+	r := strings.NewReader(`
+			BenchmarkMath/areaUnder/y=sin(x)/delta=0.001000/start_x=-2/end_x=1/abs_val=true-4         	   21801	     55357 ns/op	       0 B/op	       0 allocs/op
+			BenchmarkMath/areaUnder/y=2x+3/delta=1.000000/start_x=-1/end_x=2/abs_val=false-4          	88335925	        13.3 ns/op	       0 B/op	       0 allocs/op
+			BenchmarkMath/max/y=2x+3/delta=0.001000/start_x=-2/end_x=1-4                              	   56282	     20361 ns/op	       0 B/op	       0 allocs/op
+			BenchmarkMath/max/y=sin(x)/delta=1.000000/start_x=-1/end_x=2-4                            	16381138	        62.7 ns/op	       0 B/op	       0 allocs/op
+			`)
+	benches, err := ParseBenchmarks(r)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	filtered, err := benches[0].Results.Filter("y==sin(x)")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, res := range filtered {
+		nsPerOp, err := res.Outputs.GetNsPerOp()
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("ns per op = %v\n", nsPerOp)
+	}
+	// Output:
+	// ns per op = 55357
+	// ns per op = 62.7
 }

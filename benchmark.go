@@ -17,7 +17,7 @@ import (
 // Benchmark represents a single top-level benchmark and it's results.
 type Benchmark struct {
 	Name    string
-	Results []BenchRes
+	Results BenchResults
 }
 
 // String returns the string representation of the benchmark.
@@ -28,42 +28,6 @@ func (b Benchmark) String() string {
 		s[i] = fmt.Sprintf("%s%s %s", b.Name, res.Inputs, benchOutputsString(res.Outputs))
 	}
 	return strings.Join(s, "\n")
-}
-
-// GroupResults groups a benchmarks results by a specified set of
-// input variable names. For example a Benchmark with Results corresponding
-// to the cases [/foo=1/bar=baz /foo=2/bar=baz /foo=1/bar=qux /foo=2/bar=qux]
-// grouped by ['foo'] would have 2 groups of results (those with Inputs where
-// foo=1 and those with Inputs where foo=2).
-func (b Benchmark) GroupResults(groupBy []string) GroupedResults {
-	groupedResults := map[string][]BenchRes{}
-	if len(groupBy) == 0 {
-		res := make([]BenchRes, len(b.Results))
-		copy(res, b.Results)
-		groupedResults[""] = res
-		return groupedResults
-	}
-	for _, result := range b.Results {
-		groupVals := benchVarValues{}
-		for _, varValue := range result.Inputs.VarValues {
-			for _, groupName := range groupBy {
-				if varValue.Name == groupName {
-					groupVals = append(groupVals, varValue)
-				}
-			}
-		}
-		if len(groupVals) != len(groupBy) {
-			continue
-		}
-
-		k := groupVals.String()
-		if existingResults, ok := groupedResults[k]; ok {
-			groupedResults[k] = append(existingResults, result)
-		} else {
-			groupedResults[k] = []BenchRes{result}
-		}
-	}
-	return groupedResults
 }
 
 // ParseBenchmarks extracts a list of Benchmarks from testing.B output.

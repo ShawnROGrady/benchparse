@@ -25,6 +25,7 @@ var (
 	errNonComparable       = errors.New("values cannot be compared")
 	errDifferentNames      = errors.New("variables have different names")
 	errInvalidOperation    = errors.New("invalid comparison operation")
+	errMalformedFilter     = errors.New("filter expression not of form 'var_name==var_value'")
 )
 
 type compareErr struct {
@@ -125,5 +126,5 @@ func parseValueComparison(in string) (varValComp, error) {
 		}, nil
 	}
 
-	return varValComp{}, fmt.Errorf("input not of expected form 'var_name==var_value': %s", in)
+	return varValComp{}, errMalformedFilter
 }
