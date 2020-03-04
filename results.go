@@ -1,6 +1,7 @@
 package benchparse
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"sort"
@@ -249,6 +250,31 @@ func (b parsedBenchOutputs) GetMBPerS() (float64, error) {
 type BenchRes struct {
 	Inputs  BenchInputs  // the input variables
 	Outputs BenchOutputs // the output result
+}
+
+// BenchResults represents a list of benchmark results
+type BenchResults []BenchRes
+
+// Filter returns a subset of the BenchResults matching
+// the provided filter.
+func (b BenchResults) Filter(value BenchVarValue, cmp Comparison) (BenchResults, error) {
+	filtered := []BenchRes{}
+	for _, res := range b {
+		for _, varVal := range res.Inputs.VarValues {
+			include, err := cmp.compare(varVal, value)
+			if err != nil {
+				if !errors.Is(err, errDifferentNames) {
+					return nil, err
+				}
+				continue
+			}
+			if include {
+				filtered = append(filtered, res)
+				break
+			}
+		}
+	}
+	return filtered, nil
 }
 
 // GroupedResults represents a grouping of benchmark results.

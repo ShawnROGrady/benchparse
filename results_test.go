@@ -1,6 +1,8 @@
 package benchparse
 
 import (
+	"errors"
+	"reflect"
 	"testing"
 
 	"golang.org/x/tools/benchmark/parse"
@@ -173,5 +175,50 @@ func testMBPerS(t *testing.T, b parsedBenchOutputs, expectedV float64, expectedE
 
 	if expectedV != v {
 		t.Errorf("unexpected MBPerS (expected=%v, actual=%v)", expectedV, v)
+	}
+}
+
+var filterTests = map[string]struct {
+	results          BenchResults
+	filterVar        BenchVarValue
+	cmp              Comparison
+	expectedFiltered BenchResults
+	expectedErr      error
+}{
+	"filter_by_string_eq": {
+		results:          sampleBench.Results,
+		filterVar:        BenchVarValue{Name: "y", Value: "sin(x)"},
+		cmp:              Eq,
+		expectedFiltered: BenchResults{sampleBench.Results[0], sampleBench.Results[3]},
+	},
+	"filter_by_float_gt": {
+		results:          sampleBench.Results,
+		filterVar:        BenchVarValue{Name: "delta", Value: 0.01},
+		cmp:              Gt,
+		expectedFiltered: BenchResults{sampleBench.Results[1], sampleBench.Results[3]},
+	},
+	"non_comparable_values": {
+		results:     sampleBench.Results,
+		filterVar:   BenchVarValue{Name: "y", Value: 2},
+		cmp:         Eq,
+		expectedErr: ErrNonComparable,
+	},
+}
+
+func TestFilter(t *testing.T) {
+	for testName, testCase := range filterTests {
+		t.Run(testName, func(t *testing.T) {
+			filtered, err := testCase.results.Filter(testCase.filterVar, testCase.cmp)
+			if err != nil {
+				if !errors.Is(err, testCase.expectedErr) {
+					t.Errorf("unexpected error\nexpected=%s\nactual=%s", testCase.expectedErr, err)
+				}
+				return
+			}
+
+			if !reflect.DeepEqual(filtered, testCase.expectedFiltered) {
+				t.Errorf("unexpected filtered results\nexpected:\n%v\nactual:\n%v", testCase.expectedFiltered, filtered)
+			}
+		})
 	}
 }
