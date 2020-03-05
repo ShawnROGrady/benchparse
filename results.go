@@ -75,11 +75,20 @@ func (b BenchVarValue) less(o BenchVarValue) (bool, error) {
 
 // String returns the string representation of the BenchVarValue
 // with the form 'var_name=var_value'.
-// Currently the default string format ('%v') is used for the actual
-// value, meaning the string representation of a BenchVarValue may
-// vary slightly from the original input (for example precision of
-// floating point values).
+//
+// The string representation of a BenchVarValue may vary slightly
+// from the original input due to things like floating point
+// precision and alternate string representations of various
+// types.
+//
+// Currently the '%f' verb is used for floating point values
+// in order to guarantee that they can be distinguished from
+// integer values. For everything else the default '%v' verb
+// is used for simplicities sake.
 func (b BenchVarValue) String() string {
+	if f, ok := b.Value.(float64); ok {
+		return fmt.Sprintf("%s=%f", b.Name, f)
+	}
 	return fmt.Sprintf("%s=%v", b.Name, b.Value)
 }
 

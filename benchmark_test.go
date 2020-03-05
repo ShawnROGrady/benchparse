@@ -14,6 +14,21 @@ import (
 	"golang.org/x/tools/benchmark/parse"
 )
 
+func testBenchmarkEqual(t *testing.T, expected, actual Benchmark) {
+	t.Helper()
+	if expected.Name != actual.Name {
+		t.Errorf("unexpected name (expected=%s, actual=%s)", expected.Name, actual.Name)
+	}
+
+	if len(expected.Results) == len(actual.Results) {
+		for i := range expected.Results {
+			testBenchResEq(t, expected.Results[i], actual.Results[i])
+		}
+	} else {
+		t.Errorf("unexpected results\nexpected (len=%d):\n%#v\nactual (len=%d):\n%#v", len(expected.Results), expected.Results, len(actual.Results), actual.Results)
+	}
+}
+
 var sampleBench = Benchmark{
 	Name: "BenchmarkMath",
 	Results: []BenchRes{
@@ -237,10 +252,10 @@ var benchmarkStringTests = map[string]struct {
 	"benchmem_enabled": {
 		bench: sampleBench,
 		// slightly different float precision than input
-		expectedString: `BenchmarkMath/areaUnder/y=sin(x)/delta=0.001/start_x=-2/end_x=1/abs_val=true-4 21801 55357.00 ns/op 0 B/op 0 allocs/op
-BenchmarkMath/areaUnder/y=2x+3/delta=1/start_x=-1/end_x=2/abs_val=false-4 88335925 13.30 ns/op 0 B/op 0 allocs/op
-BenchmarkMath/max/y=2x+3/delta=0.001/start_x=-2/end_x=1-4 56282 20361.00 ns/op 0 B/op 0 allocs/op
-BenchmarkMath/max/y=sin(x)/delta=1/start_x=-1/end_x=2-4 16381138 62.70 ns/op 0 B/op 0 allocs/op`,
+		expectedString: `BenchmarkMath/areaUnder/y=sin(x)/delta=0.001000/start_x=-2/end_x=1/abs_val=true-4 21801 55357.00 ns/op 0 B/op 0 allocs/op
+BenchmarkMath/areaUnder/y=2x+3/delta=1.000000/start_x=-1/end_x=2/abs_val=false-4 88335925 13.30 ns/op 0 B/op 0 allocs/op
+BenchmarkMath/max/y=2x+3/delta=0.001000/start_x=-2/end_x=1-4 56282 20361.00 ns/op 0 B/op 0 allocs/op
+BenchmarkMath/max/y=sin(x)/delta=1.000000/start_x=-1/end_x=2-4 16381138 62.70 ns/op 0 B/op 0 allocs/op`,
 	},
 	"bytes_set": {
 		bench: Benchmark{
@@ -313,6 +328,13 @@ func TestBenchmarkString(t *testing.T) {
 			if s != testCase.expectedString {
 				t.Errorf("unexpected string\nexpected:\n%s\nactual:\n%s", testCase.expectedString, s)
 			}
+
+			r := strings.NewReader(s)
+			benches, err := ParseBenchmarks(r)
+			if err != nil {
+				t.Fatalf("unexpected error parsing from string: %s", err)
+			}
+			testBenchmarkEqual(t, testCase.bench, benches[0])
 		})
 	}
 }
@@ -355,16 +377,16 @@ func ExampleParseBenchmarks() {
 	}
 	// Output:
 	// bench name: BenchmarkMath
-	// var values = ["y=sin(x)" "delta=0.001" "start_x=-2" "end_x=1" "abs_val=true"]
+	// var values = ["y=sin(x)" "delta=0.001000" "start_x=-2" "end_x=1" "abs_val=true"]
 	// other subs = ["areaUnder"]
 	// ns per op = 55357.00
-	// var values = ["y=2x+3" "delta=1" "start_x=-1" "end_x=2" "abs_val=false"]
+	// var values = ["y=2x+3" "delta=1.000000" "start_x=-1" "end_x=2" "abs_val=false"]
 	// other subs = ["areaUnder"]
 	// ns per op = 13.30
-	// var values = ["y=2x+3" "delta=0.001" "start_x=-2" "end_x=1"]
+	// var values = ["y=2x+3" "delta=0.001000" "start_x=-2" "end_x=1"]
 	// other subs = ["max"]
 	// ns per op = 20361.00
-	// var values = ["y=sin(x)" "delta=1" "start_x=-1" "end_x=2"]
+	// var values = ["y=sin(x)" "delta=1.000000" "start_x=-1" "end_x=2"]
 	// other subs = ["max"]
 	// ns per op = 62.70
 }

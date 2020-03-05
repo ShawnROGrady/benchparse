@@ -12,6 +12,47 @@ import (
 	"golang.org/x/tools/benchmark/parse"
 )
 
+func testBenchResEq(t *testing.T, expected, actual BenchRes) {
+	t.Helper()
+	if !reflect.DeepEqual(expected.Inputs, actual.Inputs) {
+		t.Errorf("unexpected inputs\nexpected:\n%#v\nactual:\n%#v", expected.Inputs, actual.Inputs)
+	}
+
+	var (
+		expectedIterations                                      = expected.Outputs.GetIterations()
+		expectedNsPerOp, expectedNsPerOpErr                     = expected.Outputs.GetNsPerOp()
+		expectedAllocedBytesPerOp, expectedAllocedBytesPerOpErr = expected.Outputs.GetAllocedBytesPerOp()
+		expectedAllocsPerOp, expectedAllocsPerOpErr             = expected.Outputs.GetAllocsPerOp()
+		expectedMBPerS, expectedMBPerSErr                       = expected.Outputs.GetMBPerS()
+
+		actualIterations                                    = actual.Outputs.GetIterations()
+		actualNsPerOp, actualNsPerOpErr                     = actual.Outputs.GetNsPerOp()
+		actualAllocedBytesPerOp, actualAllocedBytesPerOpErr = actual.Outputs.GetAllocedBytesPerOp()
+		actualAllocsPerOp, actualAllocsPerOpErr             = actual.Outputs.GetAllocsPerOp()
+		actualMBPerS, actualMBPerSErr                       = actual.Outputs.GetMBPerS()
+	)
+
+	if expectedIterations != actualIterations {
+		t.Errorf("unexpected output iterations (expected=%d, actual=%d)", expectedIterations, actualIterations)
+	}
+
+	if expectedNsPerOp != actualNsPerOp || expectedNsPerOpErr != actualNsPerOpErr {
+		t.Errorf("unexpected output GetNsPerOp()\nexpected:\n%v,%s\nactual:\n%v,%s", expectedNsPerOp, expectedNsPerOpErr, actualNsPerOp, actualNsPerOpErr)
+	}
+
+	if expectedAllocedBytesPerOp != actualAllocedBytesPerOp || expectedAllocedBytesPerOpErr != actualAllocedBytesPerOpErr {
+		t.Errorf("unexpected output GetAllocedBytesPerOp()\nexpected:\n%v,%s\nactual:\n%v,%s", expectedAllocedBytesPerOp, expectedAllocedBytesPerOpErr, actualAllocedBytesPerOp, actualAllocedBytesPerOpErr)
+	}
+
+	if expectedAllocsPerOp != actualAllocsPerOp || expectedAllocsPerOpErr != actualAllocsPerOpErr {
+		t.Errorf("unexpected output GetAllocsPerOp()\nexpected:\n%v,%s\nactual:\n%v,%s", expectedAllocsPerOp, expectedAllocsPerOpErr, actualAllocsPerOp, actualAllocsPerOpErr)
+	}
+
+	if expectedMBPerS != actualMBPerS || expectedMBPerSErr != actualMBPerSErr {
+		t.Errorf("unexpected output GetMBPerS()\nexpected:\n%v,%s\nactual:\n%v,%s", expectedMBPerS, expectedMBPerSErr, actualMBPerS, actualMBPerSErr)
+	}
+}
+
 var getOutputMeasurementTests = map[string]struct {
 	output                       parsedBenchOutputs
 	expectedNsPerOp              float64
@@ -216,16 +257,16 @@ var groupResultsTests = map[string]struct {
 		benchmark: sampleBench,
 		groupBy:   []string{"y", "delta"},
 		expectedGroupedResults: map[string]BenchResults{
-			"y=sin(x),delta=0.001": []BenchRes{
+			"y=sin(x),delta=0.001000": []BenchRes{
 				sampleBench.Results[0],
 			},
-			"y=2x+3,delta=1": []BenchRes{
+			"y=2x+3,delta=1.000000": []BenchRes{
 				sampleBench.Results[1],
 			},
-			"y=2x+3,delta=0.001": []BenchRes{
+			"y=2x+3,delta=0.001000": []BenchRes{
 				sampleBench.Results[2],
 			},
-			"y=sin(x),delta=1": []BenchRes{
+			"y=sin(x),delta=1.000000": []BenchRes{
 				sampleBench.Results[3],
 			},
 		},
