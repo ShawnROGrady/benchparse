@@ -2,6 +2,7 @@ package benchparse
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -214,6 +215,18 @@ func TestParseBencharks(t *testing.T) {
 				t.Errorf("unexpected parsed benchmarks\nexpected:\n%v\nactual:\n%v", testCase.expectedBenchmarks, benchmarks)
 			}
 		})
+	}
+}
+
+type badReader struct{}
+
+func (b badReader) Read([]byte) (int, error) { return 0, errors.New("test error") }
+
+func TestParseBenchmarksReadErr(t *testing.T) {
+	r := badReader{}
+	_, err := ParseBenchmarks(r)
+	if err == nil {
+		t.Errorf("unexpectedly no error")
 	}
 }
 

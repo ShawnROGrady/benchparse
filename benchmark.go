@@ -62,6 +62,10 @@ func ParseBenchmarks(r io.Reader) ([]Benchmark, error) {
 		benchmarks[benchName] = bench
 	}
 
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
 	parsedBenchmarks := make([]Benchmark, len(benchmarks))
 	i := 0
 	for _, v := range benchmarks {
