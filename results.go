@@ -27,18 +27,22 @@ func (b BenchVarValue) equal(o BenchVarValue) (bool, error) {
 	v1, v2 := reflect.ValueOf(b.Value), reflect.ValueOf(o.Value)
 	k1, k2 := v1.Type().Kind(), v2.Type().Kind()
 
-	// TODO: should probably allow comparison across numeric kinds (e.g. int and float)
+	if isNumeric(k1) && isNumeric(k2) {
+		f1, err := getFloat(v1, k1)
+		if err != nil {
+			return false, err
+		}
+		f2, err := getFloat(v2, k2)
+		if err != nil {
+			return false, err
+		}
+		return f1 == f2, nil
+	}
 	if k1 != k2 {
 		return false, errNonComparable
 	}
 
 	switch k1 {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return v1.Int() == v2.Int(), nil
-	case reflect.Float64, reflect.Float32:
-		return v1.Float() == v2.Float(), nil
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return v1.Uint() == v2.Uint(), nil
 	case reflect.String:
 		return v1.String() == v2.String(), nil
 	default:
@@ -54,22 +58,53 @@ func (b BenchVarValue) less(o BenchVarValue) (bool, error) {
 	v1, v2 := reflect.ValueOf(b.Value), reflect.ValueOf(o.Value)
 	k1, k2 := v1.Type().Kind(), v2.Type().Kind()
 
-	// TODO: should probably allow comparison across numeric kinds (e.g. int and float)
+	if isNumeric(k1) && isNumeric(k2) {
+		f1, err := getFloat(v1, k1)
+		if err != nil {
+			return false, err
+		}
+		f2, err := getFloat(v2, k2)
+		if err != nil {
+			return false, err
+		}
+		return f1 < f2, nil
+	}
 	if k1 != k2 {
 		return false, errNonComparable
 	}
 
 	switch k1 {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return v1.Int() < v2.Int(), nil
-	case reflect.Float64, reflect.Float32:
-		return v1.Float() < v2.Float(), nil
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return v1.Uint() < v2.Uint(), nil
 	case reflect.String:
 		return v1.String() < v2.String(), nil
 	default:
 		return false, errOperationNotDefined
+	}
+}
+
+func isNumeric(k reflect.Kind) bool {
+	numericKinds := [...]reflect.Kind{
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Float64, reflect.Float32,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+	}
+	for _, kind := range numericKinds {
+		if k == kind {
+			return true
+		}
+	}
+	return false
+}
+
+func getFloat(v reflect.Value, k reflect.Kind) (float64, error) {
+	switch k {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return float64(v.Int()), nil
+	case reflect.Float64, reflect.Float32:
+		return v.Float(), nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return float64(v.Uint()), nil
+	default:
+		return 0, fmt.Errorf("non-numeric type: %s", k)
 	}
 }
 

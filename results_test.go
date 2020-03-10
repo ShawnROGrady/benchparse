@@ -356,6 +356,11 @@ var filterTests = map[string]struct {
 		filterExpr:       "delta>0.01",
 		expectedFiltered: BenchResults{sampleBench.Results[1], sampleBench.Results[3]},
 	},
+	"filter_by_int_lt_float_val": {
+		results:          sampleBench.Results,
+		filterExpr:       "delta<1",
+		expectedFiltered: BenchResults{sampleBench.Results[0], sampleBench.Results[2]},
+	},
 	"non_comparable_values": {
 		results:     sampleBench.Results,
 		filterExpr:  "y==2",

@@ -2,6 +2,7 @@ package benchparse
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -60,6 +61,16 @@ var compareTests = map[string]struct {
 		expectGt: compareResult{res: true},
 		expectLe: compareResult{res: false},
 		expectGe: compareResult{res: true},
+	},
+	"same_name_float_v1_less_than_int_v2": {
+		v1:       BenchVarValue{Name: "var1", Value: 0.9},
+		v2:       BenchVarValue{Name: "var1", Value: int(1)},
+		expectEq: compareResult{res: false},
+		expectNe: compareResult{res: true},
+		expectLt: compareResult{res: true},
+		expectGt: compareResult{res: false},
+		expectLe: compareResult{res: true},
+		expectGe: compareResult{res: false},
 	},
 	"same_name_unequal_bool_values": {
 		v1:       BenchVarValue{Name: "var1", Value: true},
@@ -199,6 +210,55 @@ func testGe(t *testing.T, v1, v2 BenchVarValue, expectGe compareResult) {
 	}
 	if ge != expectGe.res {
 		t.Errorf("unexpected %s>=%s\nexpected:%t\nactual:%t", v1, v2, expectGe, ge)
+	}
+}
+
+var compareBenches = map[string]struct {
+	v1 BenchVarValue
+	v2 BenchVarValue
+}{
+	"equal_strings": {
+		v1: BenchVarValue{Name: "var", Value: "foo"},
+		v2: BenchVarValue{Name: "var", Value: "foo"},
+	},
+	"unequal_strings": {
+		v1: BenchVarValue{Name: "var", Value: "foo"},
+		v2: BenchVarValue{Name: "var", Value: "bar"},
+	},
+	"equal_bools": {
+		v1: BenchVarValue{Name: "var", Value: true},
+		v2: BenchVarValue{Name: "var", Value: true},
+	},
+	"unequal_bools": {
+		v1: BenchVarValue{Name: "var", Value: true},
+		v2: BenchVarValue{Name: "var", Value: false},
+	},
+	"equal_numbers": {
+		v1: BenchVarValue{Name: "var", Value: uint(2)},
+		v2: BenchVarValue{Name: "var", Value: int(2)},
+	},
+	"unequal_numbers": {
+		v1: BenchVarValue{Name: "var", Value: uint(2)},
+		v2: BenchVarValue{Name: "var", Value: float32(1.3)},
+	},
+}
+
+var benchCompareRes error
+
+func BenchmarkCompare(b *testing.B) {
+	allComps := []Comparison{Eq, Ne, Lt, Gt, Le, Ge}
+	for benchName, benchCase := range compareBenches {
+		b.Run(fmt.Sprintf("case=%s", benchName), func(b *testing.B) {
+			for _, comp := range allComps {
+				b.Run(fmt.Sprintf("cmp=%s", comp.description()), func(b *testing.B) {
+					var err error
+					for i := 0; i < b.N; i++ {
+						_, err = comp.compare(benchCase.v1, benchCase.v2)
+					}
+					benchCompareRes = err
+				})
+			}
+		})
 	}
 }
 

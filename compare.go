@@ -19,6 +19,25 @@ const (
 	Ge Comparison = ">="
 )
 
+func (c Comparison) description() string {
+	switch c {
+	case Eq:
+		return "eq"
+	case Ne:
+		return "ne"
+	case Lt:
+		return "lt"
+	case Gt:
+		return "gt"
+	case Le:
+		return "le"
+	case Ge:
+		return "ge"
+	default:
+		return ""
+	}
+}
+
 // Possible comparison errors.
 var (
 	errOperationNotDefined = errors.New("operation not defined for values")
