@@ -391,6 +391,78 @@ func TestFilter(t *testing.T) {
 	}
 }
 
+func BenchmarkFilterByInt(b *testing.B) {
+	var (
+		allComps      = []Comparison{Eq, Ne, Lt, Gt, Le, Ge}
+		allNumResults = []int{10, 20, 30}
+		allNumVars    = []int{2, 3, 5, 10, 20}
+	)
+
+	for _, cmp := range allComps {
+		b.Run(fmt.Sprintf("cmp=%s", cmp.description()), func(b *testing.B) {
+			for _, numResults := range allNumResults {
+				b.Run(fmt.Sprintf("num_results=%d", numResults), func(b *testing.B) {
+					for _, numVars := range allNumVars {
+						b.Run(fmt.Sprintf("num_vars=%d", numVars), func(b *testing.B) {
+							benchmarkFilterByInt(b, cmp, numResults, numVars)
+						})
+					}
+				})
+			}
+		})
+	}
+}
+
+var filterErr error
+
+func benchmarkFilterByInt(b *testing.B, cmp Comparison, numResults, numVars int) {
+	b.Helper()
+	res := make(BenchResults, numResults)
+	// the index of the var value of interest
+	for i := 0; i < numResults; i++ {
+		varVals := make([]BenchVarValue, numVars)
+		for j := 0; j < numVars; j++ {
+			val := j
+			if cmp == Eq {
+				val = 1
+			}
+			varVals[j] = BenchVarValue{
+				Name:  fmt.Sprintf("var%d", j),
+				Value: val,
+			}
+		}
+		res[i] = BenchRes{
+			Inputs: BenchInputs{VarValues: varVals},
+		}
+	}
+	var filterVal int
+	// make sure all match filter expression - easiest way to accurately compare performance
+	switch cmp {
+	case Eq:
+		filterVal = 1
+	case Ne, Lt, Le:
+		filterVal = numVars + 1
+	case Gt, Ge:
+		filterVal = -1
+	}
+	filterExpr := fmt.Sprintf("var%d%s%d", numVars-1, cmp, filterVal)
+
+	var (
+		filtered BenchResults
+		err      error
+	)
+	for i := 0; i < b.N; i++ {
+		filtered, err = res.Filter(filterExpr)
+		if err != nil {
+			b.Errorf("unexpected err: %s", err)
+		}
+		if len(filtered) != len(res) {
+			b.Errorf("unexpected number of filtered results (expected=%d, actual=%d)", len(res), len(filtered))
+		}
+	}
+	filterErr = err
+}
+
 func ExampleBenchResults_Filter() {
 	r := strings.NewReader(`
 			BenchmarkMath/areaUnder/y=sin(x)/delta=0.001000/start_x=-2/end_x=1/abs_val=true-4         	   21801	     55357 ns/op	       0 B/op	       0 allocs/op
