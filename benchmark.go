@@ -5,11 +5,13 @@ package benchparse
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"golang.org/x/tools/benchmark/parse"
 )
@@ -32,14 +34,47 @@ func (b Benchmark) String() string {
 
 // ParseBenchmarks extracts a list of Benchmarks from testing.B output.
 func ParseBenchmarks(r io.Reader) ([]Benchmark, error) {
+	return parseBenchmarks(r, func(line string) (string, error) {
+		// line already formatted in this case
+		return line, nil
+	})
+}
+
+// benchEvent represents a single testing.B output with the '-json' flag
+// enabled.
+type benchEvent struct {
+	Time    time.Time // encodes as an RFC3339-format string
+	Action  string
+	Package string
+	Test    string
+	Elapsed float64 // seconds
+	Output  string
+}
+
+// ParseBenchmarksFromJSON extracts a list of benchmarks from testing.B output
+// with the '-json' flag enabled.
+func ParseBenchmarksFromJSON(r io.Reader) ([]Benchmark, error) {
+	return parseBenchmarks(r, func(line string) (string, error) {
+		var event benchEvent
+		if err := json.Unmarshal([]byte(line), &event); err != nil {
+			return "", fmt.Errorf("unmarshal event: %s", err)
+		}
+		return event.Output, nil
+	})
+}
+
+func parseBenchmarks(r io.Reader, fmtLine func(line string) (string, error)) ([]Benchmark, error) {
 	var (
 		scanner    = bufio.NewScanner(r)
 		benchmarks = map[string]Benchmark{}
 	)
 	for scanner.Scan() {
-		parsed, err := parse.ParseLine(scanner.Text())
+		line, err := fmtLine(scanner.Text())
 		if err != nil {
-			// TODO: this is what ParseSet does but feels awkward - https://github.com/golang/tools/blob/master/benchmark/parse/parse.go#L114
+			return nil, err
+		}
+		parsed, err := parse.ParseLine(line)
+		if err != nil {
 			continue
 		}
 

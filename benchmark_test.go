@@ -233,6 +233,75 @@ func TestParseBencharks(t *testing.T) {
 	}
 }
 
+var parseBenchmarksFromJSONTests = map[string]struct {
+	resultSet          string
+	expectedBenchmarks []Benchmark
+	expectErr          bool
+}{
+	"1_bench_4_cases_benchmem_set": {
+		resultSet: `{"Time":"2020-05-13T22:50:47.859655-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"goos: darwin\n"}
+{"Time":"2020-05-13T22:50:47.860205-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"goarch: amd64\n"}
+{"Time":"2020-05-13T22:50:47.860222-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"BenchmarkMath\n"}
+{"Time":"2020-05-13T22:50:47.860239-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"BenchmarkMath/areaUnder\n"}
+{"Time":"2020-05-13T22:50:47.860942-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"BenchmarkMath/areaUnder/y=sin(x)\n"}
+{"Time":"2020-05-13T22:50:47.861468-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"BenchmarkMath/areaUnder/y=sin(x)/delta=0.001000\n"}
+{"Time":"2020-05-13T22:50:47.861999-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"BenchmarkMath/areaUnder/y=sin(x)/delta=0.001000/start_x=-2\n"}
+{"Time":"2020-05-13T22:50:47.862419-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"BenchmarkMath/areaUnder/y=sin(x)/delta=0.001000/start_x=-2/end_x=1\n"}
+{"Time":"2020-05-13T22:50:47.862817-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"BenchmarkMath/areaUnder/y=sin(x)/delta=0.001000/start_x=-2/end_x=1/abs_val=true\n"}
+{"Time":"2020-05-13T22:50:49.609057-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"BenchmarkMath/areaUnder/y=sin(x)/delta=0.001000/start_x=-2/end_x=1/abs_val=true-4         \t   21801\t     55357 ns/op\t       0 B/op\t       0 allocs/op\n"}
+{"Time":"2020-05-13T22:57:01.99228-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"BenchmarkMath/areaUnder/y=sin(x)/delta=1.000000/start_x=-1/end_x=2/abs_val=false\n"}
+{"Time":"2020-05-13T22:57:01.992288-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"BenchmarkMath/areaUnder/y=2x+3/delta=1.000000/start_x=-1/end_x=2/abs_val=false-4        \t88335925\t        13.3 ns/op\t       0 B/op\t       0 allocs/op\n"}
+{"Time":"2020-05-13T22:57:01.994853-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"BenchmarkMath/max\n"}
+{"Time":"2020-05-13T22:57:01.994961-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"BenchmarkMath/max/y=2x+3\n"}
+{"Time":"2020-05-13T22:57:01.994973-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"BenchmarkMath/max/y=2x+3/delta=0.001000\n"}
+{"Time":"2020-05-13T22:57:01.994979-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"BenchmarkMath/max/y=2x+3/delta=0.001000/start_x=-2\n"}
+{"Time":"2020-05-13T22:57:01.994986-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"BenchmarkMath/max/y=2x+3/delta=0.001000/start_x=-2/end_x=1\n"}
+{"Time":"2020-05-13T22:57:01.994993-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"BenchmarkMath/max/y=2x+3/delta=0.001000/start_x=-2/end_x=1-4                            \t   56282\t     20361 ns/op\t       0 B/op\t       0 allocs/op\n"}
+{"Time":"2020-05-13T22:57:01.997333-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"BenchmarkMath/max/y=sin(x)/delta=1.000000/start_x=-1/end_x=2\n"}                                                                                                                                                                
+{"Time":"2020-05-13T22:57:01.997344-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"BenchmarkMath/max/y=sin(x)/delta=1.000000/start_x=-1/end_x=2-4                              \t16381138\t        62.7 ns/op\t       0 B/op\t       0 allocs/op\n"}
+{"Time":"2020-05-13T22:57:01.997351-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"PASS\n"}
+{"Time":"2020-05-13T22:57:01.9975-05:00","Action":"output","Package":"github.com/ShawnROGrady/mathtest","Output":"ok  \tgithub.com/ShawnROGrady/mathtest\t374.272s\n"}
+{"Time":"2020-05-13T22:57:01.998418-05:00","Action":"pass","Package":"github.com/ShawnROGrady/mathtest","Elapsed":374.273}`,
+		expectedBenchmarks: []Benchmark{sampleBench},
+	},
+	"non_json": {
+		resultSet: `
+			goos: darwin
+			goarch: amd64
+			BenchmarkMath/areaUnder/y=sin(x)/delta=0.001000/start_x=-2/end_x=1/abs_val=true-4         	   21801	     55357 ns/op	       0 B/op	       0 allocs/op
+			`,
+		expectErr: true,
+	},
+}
+
+func TestParseBencharksFromJSON(t *testing.T) {
+	for testName, testCase := range parseBenchmarksFromJSONTests {
+		t.Run(testName, func(t *testing.T) {
+			b := bytes.NewReader([]byte(testCase.resultSet))
+			benchmarks, err := ParseBenchmarksFromJSON(b)
+			if err != nil {
+				if !testCase.expectErr {
+					t.Errorf("unexpected error: %s", err)
+				}
+				return
+			}
+
+			if testCase.expectErr {
+				t.Fatalf("unexpectedly no error")
+			}
+
+			// sort the benchmarks by name for consistent results
+			sort.Slice(benchmarks, func(i, j int) bool {
+				return benchmarks[i].Name < benchmarks[j].Name
+			})
+
+			if !reflect.DeepEqual(benchmarks, testCase.expectedBenchmarks) {
+				t.Errorf("unexpected parsed benchmarks\nexpected:\n%v\nactual:\n%v", testCase.expectedBenchmarks, benchmarks)
+			}
+		})
+	}
+}
+
 type badReader struct{}
 
 func (b badReader) Read([]byte) (int, error) { return 0, errors.New("test error") }
